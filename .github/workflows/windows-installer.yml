@@ -6,6 +6,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: windows-installer-release
+  cancel-in-progress: false
+
 jobs:
   verify:
     uses: ./.github/workflows/local-verification.yml
@@ -53,3 +57,48 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: Merak-Windows-x64
+          path: release
+      - name: Verify and publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Unsupported release version"; exit 1; }
+          node scripts/release-artifacts.cjs --check-version
+          TAG="v$VERSION"
+          INSTALLER="Merak-Setup-$VERSION-x64.exe"
+          NOTES="docs/RELEASE_$VERSION.md"
+          test -s "$NOTES"
+          test -s "release/$INSTALLER"
+          (cd release && sha256sum --check SHA256SUMS.txt)
+          jq -e --arg version "$VERSION" --arg commit "$RELEASE_COMMIT" --arg filename "$INSTALLER" \
+            '.version == $version and .commit == $commit and .filename == $filename and .smoke.accepted == true and .desktop_smoke.accepted == true' \
+            release/build-info.json > /dev/null
+          if git show-ref --verify --quiet "refs/tags/$TAG"; then
+            test "$(git rev-parse "$TAG^{commit}")" = "$RELEASE_COMMIT" || { echo "Existing tag points to another commit"; exit 1; }
+          fi
+          gh release create "$TAG" \
+            "release/$INSTALLER" release/SHA256SUMS.txt release/build-info.json \
+            release/package-smoke.json release/desktop-smoke.json release/resume-smoke.json \
+            --target "$RELEASE_COMMIT" --title "Merak $VERSION" --notes-file "$NOTES" \
+            --prerelease --latest=false

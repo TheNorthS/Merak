@@ -469,12 +469,15 @@ npm run export:source     # 从 Git 工作区导出干净源码 ZIP
 | 工作流 | 触发方式 | 执行内容 |
 | --- | --- | --- |
 | [Local contracts](.github/workflows/local-verification.yml) | 手动运行，或由手动构建调用 | Windows / Linux 静态检查与本地回归 |
-| [Windows installer](.github/workflows/windows-installer.yml) | 仅手动运行 | 先验证，再构建、随包检查、生成校验和并上传 Actions artifact |
+| [Windows installer](.github/workflows/windows-installer.yml) | 仅手动运行 | 验证、构建、随包检查通过后，自动发布 Release 并上传安装包与校验记录 |
 
 推送分支、创建 Pull Request 或推送标签均不会自动运行检查或构建。
 需要 GitHub 构建时，在 **Actions → Windows installer → Run workflow** 手动启动。
-也可直接在本机运行 `npm run build`。Release 和安装包附件由维护者手动发布，
-Actions 不会自动创建 Release。验证与构建不需要模型 API Key 或云 GPU 凭据。
+构建成功后自动发布当前版本的 GitHub Release（例如 `v0.1.1`），无需再手动上传附件。
+当前公开测试版自动标记为 **Pre-release**，不是仅保存草稿。已有同版本 Release
+不会被覆盖；发布新版本前需更新版本号及对应发布说明。
+也可在本机运行 `npm run build`，本地构建不会自动上传。
+验证与构建不需要模型 API Key 或云 GPU 凭据。
 
 [完整发布流程](docs/RELEASING.md) · [仓库维护与清理规则](docs/REPOSITORY_MAINTENANCE.md)
 

@@ -56,7 +56,8 @@ npm run release:checksums
 
 `local-verification.yml` 提供手动运行入口，也可被手动安装包工作流调用。
 `windows-installer.yml` 仅使用 `workflow_dispatch`：先验证，再构建安装包、执行随包
-检查、生成校验和并上传 Actions artifact；不创建或发布 Release。
+检查、生成校验和并上传 Actions artifact。构建成功后，发布任务下载同次构建产物，
+核对校验和、版本、构建提交与测试结果，然后自动创建标签并发布 GitHub Release。
 
 发布步骤：
 
@@ -65,12 +66,17 @@ npm run release:checksums
 2. 提交并推送源码。
 3. 选择本地 `npm run build`，或进入 GitHub **Actions → Windows installer → Run workflow**，
    选择待构建分支，手动启动。工作流文件需要先存在于默认分支。
-4. 下载 Actions artifact 或使用本地产物，检查校验和与验收记录。
-5. 确认后在 GitHub **Releases → Draft a new release** 手动选择或创建对应版本标签，
-   填写发布说明并上传安装包、校验文件。测试候选应标记为预发布。
+4. GitHub 构建成功后，`publish` 任务自动发布 `v<版本>`，安装包、SHA-256 文件和
+   构建验证记录自动成为 Release 附件。标签指向这次构建的提交，不指向移动后的分支最新提交。
+5. 进入仓库 **Releases** 下载发布结果。发布说明来自 `docs/RELEASE_<版本>.md`。
+   当前公开测试版使用 **Pre-release** 标记并立即公开，不保留为草稿。
 
-Actions 只申请仓库只读权限，不需要模型密钥、GPU 凭据或个人访问令牌。
-只推送源码不会生成安装包；只有执行手动构建才产生构建费用和产物。
+检查与构建任务使用仓库只读权限，只有 `publish` 任务申请 `contents: write`，使用
+GitHub 自动提供的 `GITHUB_TOKEN`。不需要模型密钥、GPU 凭据或个人访问令牌。
+已有同版本 Release 不会覆盖；重复运行会在发布步骤明确失败。若同名标签指向另一
+提交也会拒绝发布。需要发布更新时提高版本号并新增对应发布说明。
+只推送源码不会生成安装包；手动运行 Windows installer 才会构建并自动发布。
+本地 `npm run build` 不会上传，需要自行创建 Release 和上传附件。
 
 默认产物未签名。拥有签名证书后可按 electron-builder 配置仓库 Secrets，不要将证书提交到源码。未签名测试包可能显示发布者未知或 SmartScreen 提示。
 
