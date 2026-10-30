@@ -374,7 +374,12 @@ def test_named_native_conditions_never_infer_first_control_or_mechanism_as_focal
     assert len(rows) == 8 and {row[2] for row in rows} == set(NATIVE_CONDITIONS)
     assert all(row[1] == "Declared condition" and row[3] == "Macro-F1" for row in rows)
     caption = _evaluation_caption({**brief, "evaluation_conditions": projection})
-    assert all(name in caption for name in NATIVE_CONDITIONS)
+    assert "Condition labels are shown in the diagram" in caption
+    assert "does not enumerate the complete mechanism-test family" in caption
+    svg, _ = _evaluation_design_svg({"method_brief": brief,
+        "source_data": ["experiments/METHOD_CONTRACT.json", "ideas/SELECTED_IDEA.json"]})
+    visible = " ".join(ET.fromstring(svg).itertext())
+    assert all(name in visible for name in NATIVE_CONDITIONS)
     assert "Additional declared controls" not in caption
     assert brief == before
 

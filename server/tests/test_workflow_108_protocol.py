@@ -93,7 +93,7 @@ async def test_prepare_failure_enters_real_revision_owner_loop(tmp_path, monkeyp
 async def test_first_primary_preparation_failure_does_not_skip_acceptance_loop(monkeypatch):
     events = []
     context = SimpleNamespace(node=SimpleNamespace(id="figure"), run=SimpleNamespace(id="fixture"), resume_stage="",
-                              host=SimpleNamespace(_emit=AsyncMock()))
+                              host=SimpleNamespace(_emit=AsyncMock()), run_state=SimpleNamespace(load=lambda: {}))
     for name in ["prepare_node", "load_resume_state", "consume_checkpoint", "prepare_revalidation",
                  "initialize_preflight", "load_node_preflight", "prepare_node_inputs", "run_code_review",
                  "persist_node_acceptance", "refresh_node_audits", "emit_node_acceptance"]:

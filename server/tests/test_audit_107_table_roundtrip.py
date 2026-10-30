@@ -41,7 +41,10 @@ def test_actual_producer_roundtrip_and_numeric_tamper_rejection(tmp_path, direct
     records = selected_table_source_records(loaded)
     extra = {panel.label for panel in panels[1:]}
     for panel in panels:
-        assert f"Assigned scenario score on the {metric} scale" in records[panel.label]["caption"]
+        caption = records[panel.label]["caption"]
+        assert "Assigned unitless scenario score" in caption
+        assert "Macro-F1" not in caption
+        assert "higher is better" not in caption and "lower is better" not in caption
     assert _bounded_primary_projection(tmp_path, payload, binding, records, loaded, extra) == loaded
     repeated = _bounded_primary_projection(tmp_path, payload, binding, records, loaded, extra)
     assert _bounded_primary_projection(

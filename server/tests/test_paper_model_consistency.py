@@ -94,15 +94,17 @@ def test_reconciliation_cannot_overwrite_failed_model_report(tmp_path, monkeypat
 
 
 @pytest.mark.parametrize("changed", [False, True])
-def test_unchanged_failed_review_returns_to_authors_before_another_reviewer_call(changed):
+def test_unchanged_failed_review_returns_to_authors_before_another_reviewer_call(changed, tmp_path):
     from server.services.paper_draft_coordinator import DraftCoordinator
 
     calls = []
-    finding = {"category": "model_consistency", "stage_id": "results", "message": "Repair risk values"}
+    finding = {"category": "model_consistency", "stage_id": "results", "message": "Repair risk values",
+               "target_files": ["paper/sections/05_results.tex"]}
     service = SimpleNamespace(validate_stage=lambda *_: {"passed": False, "findings": [finding]},
         stage_input_signature=lambda *_: "changed" if changed else "reviewed",
-        record_review=lambda *a: calls.append("record"), mark_stage=lambda *a, **kw: calls.append("mark"))
-    context = SimpleNamespace(service=service, project_path="fixture", paths={}, section_by_id={"results": None},
+        record_review=lambda *a: calls.append("record"), mark_stage=lambda *a, **kw: calls.append("mark"),
+        directed_issue_signature=lambda issues: "risk-values")
+    context = SimpleNamespace(service=service, project_path=str(tmp_path), paths={"state": tmp_path / "DRAFT_STATE.json"}, section_by_id={"results": None},
         error_factory=lambda stage, issues: ValueError("; ".join(issues)))
     run = SimpleNamespace(stage_id="consistency", record={"reviewed_input_signature": "reviewed"}, prior_attempts=1)
     if changed:
@@ -112,6 +114,9 @@ def test_unchanged_failed_review_returns_to_authors_before_another_reviewer_call
         with pytest.raises(ValueError, match="Repair risk values"):
             DraftCoordinator._defer_consistency_to_section_authors(context, run)
         assert calls == ["record", "mark"]
+        from server.services.manuscript_text import read_owned_state
+        queued = read_owned_state(context.paths['state'])['stages']['results']['pending_revision_issues']
+        assert queued == ['Target artifact: paper/sections/05_results.tex\nRepair risk values']
 
 
 def test_wrapped_scientific_finding_retains_explicit_author_instead_of_keyword_owner():
