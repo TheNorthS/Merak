@@ -457,6 +457,8 @@ class WorkflowRecoveryWatchdog:
         """
         # Only `.merak/runs/<run_id>.json` records are passed here. Sidecars and
         # UI hints cannot authorize unattended recovery.
+        selected, newest = None, -1
+        ambiguous = False
         for path in state_paths:
             state = self._read_json_object(path)
             if (
@@ -464,8 +466,17 @@ class WorkflowRecoveryWatchdog:
                 and isinstance(state.get("phases"), dict)
                 and isinstance(state.get("config"), dict)
             ):
-                return path
-        return None
+                try:
+                    modified = path.stat().st_mtime_ns
+                except OSError:
+                    return None
+                if modified > newest:
+                    selected, newest, ambiguous = path, modified, False
+                elif modified == newest:
+                    ambiguous = True
+        # Equal timestamps cannot prove which run is current. Never use directory
+        # enumeration order or a UI session hint to authorize automatic execution.
+        return None if ambiguous else selected
 
     async def scan_once(self, engine: Any = None) -> list[dict[str, str]]:
         return await scan_recoveries(self, engine)

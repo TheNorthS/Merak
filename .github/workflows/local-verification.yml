@@ -42,6 +42,9 @@ jobs:
       - run: npm run test:workflow-108
         env:
           PYTEST_ADDOPTS: --junitxml=test-results/workflow-108.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-recovery-ties server/tests/test_recovery_timestamp_ties.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/recovery-ties.xml
       - run: npm run test:agent-harness
         env:
           PYTEST_ADDOPTS: --junitxml=test-results/agent-harness.xml

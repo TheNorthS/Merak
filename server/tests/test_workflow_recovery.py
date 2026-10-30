@@ -588,6 +588,10 @@ async def test_newer_session_marker_cannot_revive_an_older_run(
             "requires_human_decision": True,
         },
     )
+    runs = project / ".merak" / "runs"
+    older = 1_700_000_000_000_000_000
+    os.utime(runs / "explicit-active.json", ns=(older, older))
+    os.utime(runs / "newer-but-dormant.json", ns=(older + 2_000_000_000, older + 2_000_000_000))
     session_path = project / ".merak" / "state.json"
     session_path.write_text(json.dumps({
         "run_id": "explicit-active",
