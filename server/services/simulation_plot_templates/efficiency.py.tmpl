@@ -1,0 +1,147 @@
+"""Render the registered performance/resource trade-off with uncertainty."""
+from pathlib import Path
+import csv
+import textwrap
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({{
+    "font.family": "sans-serif",
+    "font.sans-serif": {fonts!r},
+    "font.size": {font_size},
+    "axes.labelsize": {font_size},
+    "xtick.labelsize": {tick_font_size},
+    "ytick.labelsize": {tick_font_size},
+    "axes.linewidth": 0.8,
+    "xtick.major.width": 0.8,
+    "ytick.major.width": 0.8,
+    "xtick.direction": "out",
+    "ytick.direction": "out",
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "pdf.fonttype": 42,
+    "ps.fonttype": 42,
+    "svg.fonttype": "none",
+}})
+
+ROOT = Path(__file__).resolve().parents[2]
+with (ROOT / {data_path!r}).open("r", encoding="utf-8-sig", newline="") as handle:
+    rows = list(csv.DictReader(handle))
+
+def number(raw):
+    try:
+        return float(str(raw).strip())
+    except (TypeError, ValueError):
+        return None
+
+y = [number(row.get("value")) for row in rows]
+low = [number(row.get("ci_low")) for row in rows]
+high = [number(row.get("ci_high")) for row in rows]
+resource_specs = [
+    ("latency_p95_ms", "P95 latency (ms)", False),
+    ("throughput_per_s", "Throughput (samples/s)", True),
+    ("peak_memory_gb", "Peak memory (GiB)", False),
+    ("energy_j_per_1000_predictions", "Energy (J/1k predictions)", False),
+]
+def resource_number(row, field):
+    value = number(row.get(field))
+    if value is not None:
+        return value
+    if field == "latency_p95_ms":
+        return number(row.get("latency_ms") or row.get("resource_3"))
+    if field == "throughput_per_s":
+        latency = number(row.get("latency_ms") or row.get("resource_3"))
+        return 32000.0 / latency if latency and latency > 0 else None
+    if field == "peak_memory_gb":
+        return number(row.get("resource_4"))
+    if field == "energy_j_per_1000_predictions":
+        return number(row.get("resource_5"))
+    return None
+resource_values = {{
+    field: [resource_number(row, field) for row in rows]
+    for field, _, _ in resource_specs
+}}
+missing = [
+    str(row.get("row_id") or index + 1)
+    for index, (row, yv, lo, hi) in enumerate(zip(rows, y, low, high))
+    if yv is None or lo is None or hi is None
+    or any(resource_values[field][index] is None for field, _, _ in resource_specs)
+    or not str(row.get("source_run_id") or "").strip()
+]
+if not rows or missing:
+    detail = ", ".join(missing) if missing else "all rows"
+    raise SystemExit(
+        "No figure rendered: fill provenance-backed resource, value, confidence interval, "
+        f"and source_run_id for these rows first: {{detail}}"
+    )
+if any(lo > yv or hi < yv for yv, lo, hi in zip(y, low, high)):
+    raise SystemExit("No figure rendered: each CI must contain its estimate.")
+
+fig, axes = plt.subplots(2, 2, figsize=({width}, 5.5), sharey=True)
+maximize = {metric_direction!r} == "maximize"
+size_values = [number(row.get("resource_1")) for row in rows]
+finite_sizes = [value for value in size_values if value is not None and value > 0]
+size_min = min(finite_sizes) if finite_sizes else 1.0
+size_max = max(finite_sizes) if finite_sizes else 1.0
+for panel_index, (ax, (field, label, larger_resource_is_better)) in enumerate(
+    zip(axes.flat, resource_specs)
+):
+    x = resource_values[field]
+    frontier = []
+    for index, (xv, yv) in enumerate(zip(x, y)):
+        dominated = any(
+            other != index
+            and ((x[other] >= xv) if larger_resource_is_better else (x[other] <= xv))
+            and ((y[other] >= yv) if maximize else (y[other] <= yv))
+            and (x[other] != xv or y[other] != yv)
+            for other in range(len(rows))
+        )
+        if not dominated:
+            frontier.append(index)
+    frontier = sorted(frontier, key=lambda index: x[index])
+    if len(frontier) > 1:
+        ax.plot(
+            [x[index] for index in frontier], [y[index] for index in frontier],
+            color={accent!r}, linewidth=1.5, alpha=0.82,
+            label="Pareto frontier", zorder=1,
+        )
+    for index, (row, xv, yv, lo, hi) in enumerate(zip(rows, x, y, low, high)):
+        highlighted = index in frontier
+        color = {accent!r} if highlighted else {neutral!r}
+        ax.errorbar(
+            xv, yv, yerr=[[max(0.0, yv - lo)], [max(0.0, hi - yv)]],
+            fmt="none", ecolor=color, elinewidth=1.15, capsize=2.2,
+            capthick=0.9, zorder=2,
+        )
+        ax.scatter(
+            xv, yv, s=(
+                34 + 28 * ((size_values[index] - size_min) / max(1e-9, size_max - size_min))
+                if size_values[index] is not None else 42
+            ),
+            marker="D" if highlighted else "o", color=color,
+            edgecolor="white", linewidth=0.6, zorder=3,
+        )
+        if panel_index == 0:
+            ax.annotate(
+                textwrap.fill(str(row.get("method") or "Method"), width=17),
+                (xv, yv), xytext=(5, 5 if index % 2 == 0 else -13),
+                textcoords="offset points", color={dark!r},
+                fontsize={annotation_font_size},
+            )
+    ax.set_xlabel(label)
+    ax.margins(x=0.16, y=0.18)
+    ax.text(-0.12, 1.04, chr(97 + panel_index), transform=ax.transAxes,
+            fontsize={panel_label_font_size}, fontweight="bold")
+axes[0, 0].set_ylabel({metric!r}.replace("_", " ").title())
+axes[1, 0].set_ylabel({metric!r}.replace("_", " ").title())
+handles, labels = axes[0, 0].get_legend_handles_labels()
+if handles:
+    fig.legend(handles[:1], labels[:1], frameon=False, loc="upper center",
+               bbox_to_anchor=(0.5, 1.01), ncol=1)
+fig.tight_layout(pad=0.85, h_pad=1.15, w_pad=1.1)
+output = Path(__file__).with_name({output_stem!r})
+fig.savefig(output.with_suffix(".pdf"), bbox_inches="tight")
+fig.savefig(output.with_suffix(".svg"), bbox_inches="tight")
+fig.savefig(output.with_suffix(".png"), dpi={dpi}, bbox_inches="tight")
+plt.close(fig)

@@ -1,0 +1,41 @@
+from __future__ import annotations
+
+import csv
+import hashlib
+import json
+from pathlib import Path
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+root = Path(__file__).resolve().parents[4]
+manifest = json.loads(
+    (root / "experiments/results/simulated/SIMULATION_MANIFEST.json").read_text(
+        encoding="utf-8"
+    )
+)
+for item in manifest["data_files"]:
+    path = root / item["path"]
+    if not path.is_file() or sha256_file(path) != item["sha256"]:
+        raise SystemExit(f"artifact verification failed: {item['path']}")
+with (root / manifest["evidence_package"]["paired_comparisons"]).open(
+    encoding="utf-8-sig", newline=""
+) as handle:
+    rows = list(csv.DictReader(handle))
+target = [row for row in rows if row.get("in_holm_family") == "true"]
+reference = [row for row in rows if row.get("in_holm_family") == "false"]
+contract = manifest.get("registered_pair_contract") or {}
+if (
+    len(rows) != int(contract.get("observed_comparison_count", -1))
+    or len(target) != int(contract.get("holm_family_size", -1))
+    or len(reference) != int(contract.get("reference_row_count", -1))
+    or contract.get("pairing") != "all_unordered_pairs"
+):
+    raise SystemExit("registered Holm-family verification failed")
+print("verified deterministic simulation evidence bundle")

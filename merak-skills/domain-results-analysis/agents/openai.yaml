@@ -1,0 +1,4 @@
+interface:
+  display_name: "Domain Results Analysis"
+  short_description: "Analyze evidence with appropriate estimands"
+  default_prompt: "Analyze the current evidence according to its study archetype and statistical plan."

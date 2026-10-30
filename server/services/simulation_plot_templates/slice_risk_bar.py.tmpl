@@ -1,0 +1,57 @@
+"""Render slice-specific risk with sample size and an overall reference."""
+from pathlib import Path
+import csv
+import textwrap
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({{
+    "font.family": "sans-serif", "font.sans-serif": {fonts!r},
+    "font.size": {font_size}, "axes.labelsize": {font_size},
+    "xtick.labelsize": {tick_font_size},
+    "ytick.labelsize": {tick_font_size},
+    "axes.linewidth": 0.8, "axes.spines.top": False,
+    "axes.spines.right": False, "pdf.fonttype": 42,
+    "ps.fonttype": 42, "svg.fonttype": "none",
+}})
+ROOT = Path(__file__).resolve().parents[2]
+with (ROOT / {data_path!r}).open("r", encoding="utf-8-sig", newline="") as handle:
+    rows = list(csv.DictReader(handle))
+
+def number(raw):
+    try: return float(str(raw).strip())
+    except (TypeError, ValueError): return None
+
+values = [number(row.get("value")) for row in rows]
+lows = [number(row.get("ci_low")) for row in rows]
+highs = [number(row.get("ci_high")) for row in rows]
+sizes = [number(row.get("n")) for row in rows]
+missing = [str(row.get("row_id") or i + 1) for i, row in enumerate(rows)
+           if any(value is None for value in (values[i], lows[i], highs[i], sizes[i]))
+           or not str(row.get("source_run_id") or "").strip()]
+if not rows or missing:
+    raise SystemExit("No figure rendered: incomplete slice rows: " + (", ".join(missing) if missing else "all rows"))
+overall_index = next((i for i, row in enumerate(rows) if str(row.get({label_field!r}) or "") == {overall_label!r}), 0)
+overall = values[overall_index]
+order = sorted(range(len(rows)), key=lambda i: values[i])
+labels = [textwrap.fill(str(rows[i].get({label_field!r}) or "Slice"), 28) for i in order]
+y = list(range(len(order)))
+fig, ax = plt.subplots(figsize=({width}, max(2.55, 0.55 * len(order) + 1.25)))
+ax.axvline(overall, color={dark!r}, linestyle="--", linewidth=1.0, label="Overall reference", zorder=1)
+for rank, index in enumerate(order):
+    color = {colors!r}[rank % len({colors!r})]
+    ax.barh(rank, values[index], height=0.58, color=color, alpha=0.82, zorder=2)
+    ax.errorbar(values[index], rank,
+                xerr=[[max(0.0, values[index] - lows[index])], [max(0.0, highs[index] - values[index])]],
+                fmt="none", ecolor={dark!r}, elinewidth=1.0, capsize=2.2, zorder=3)
+    ax.annotate(f"{{values[index]:.3g}}  n={{sizes[index]:g}}", (values[index], rank),
+                xytext=(6, 0), textcoords="offset points", va="center",
+                fontsize={annotation_font_size})
+ax.set_yticks(y, labels); ax.invert_yaxis()
+ax.set_xlabel({metric!r}); ax.legend(frameon=False, loc="lower right")
+ax.set_xlim(left=0); ax.margins(x=0.18, y=0.14); fig.tight_layout(pad=0.75)
+output = Path(__file__).with_name({stem!r})
+for suffix in (".pdf", ".svg"): fig.savefig(output.with_suffix(suffix), bbox_inches="tight")
+fig.savefig(output.with_suffix(".png"), dpi={dpi}, bbox_inches="tight")
+plt.close(fig)

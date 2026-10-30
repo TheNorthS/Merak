@@ -1,0 +1,139 @@
+"""Fill every value and CI cell in {data_path}, then rerun this script."""
+from pathlib import Path
+import csv
+import textwrap
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({{
+    "font.family": "sans-serif",
+    "font.sans-serif": {fonts!r},
+    "font.size": {font_size},
+    "axes.labelsize": {font_size},
+    "xtick.labelsize": {tick_font_size},
+    "ytick.labelsize": {tick_font_size},
+    "axes.linewidth": 0.8,
+    "xtick.major.width": 0.8,
+    "ytick.major.width": 0.8,
+    "xtick.direction": "out",
+    "ytick.direction": "out",
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "pdf.fonttype": 42,
+    "ps.fonttype": 42,
+    "svg.fonttype": "none",
+}})
+
+ROOT = Path(__file__).resolve().parents[2]
+with (ROOT / {data_path!r}).open("r", encoding="utf-8-sig", newline="") as handle:
+    rows = list(csv.DictReader(handle))
+
+def number(raw):
+    try:
+        return float(str(raw).strip())
+    except (TypeError, ValueError):
+        return None
+
+values = [number(row.get("value")) for row in rows]
+ci_low = [number(row.get("ci_low")) for row in rows]
+ci_high = [number(row.get("ci_high")) for row in rows]
+missing = [
+    str(row.get("row_id") or index + 1)
+    for index, (row, value, low, high) in enumerate(zip(rows, values, ci_low, ci_high))
+    if (
+        value is None or low is None or high is None
+        or not str(row.get("source_run_id") or "").strip()
+    )
+]
+if not rows or missing:
+    detail = ", ".join(missing) if missing else "all rows"
+    raise SystemExit(
+        "No figure rendered: fill provenance-backed value, ci_low, ci_high, and source_run_id "
+        f"for these rows first: {{detail}}"
+    )
+if any(low > value or high < value for value, low, high in zip(values, ci_low, ci_high)):
+    raise SystemExit("No figure rendered: each CI must contain its estimate.")
+raw_labels = [str(row[{label_field!r}]) for row in rows]
+labels = [textwrap.fill(label, width=26) for label in raw_labels]
+y = list(range(len(rows)))
+fig, ax = plt.subplots(figsize=({width}, max(2.45, 0.52 * len(rows) + 1.25)))
+HIGHLIGHT_LABEL = {highlight_label!r}
+PLOT_VARIANT = {variant!r}
+highlighted = {{
+    index for index, label in enumerate(raw_labels)
+    if HIGHLIGHT_LABEL and label == HIGHLIGHT_LABEL
+}}
+if not highlighted and rows:
+    highlighted = {{len(rows) - 1}}
+colors = [{accent!r} if index in highlighted else {neutral!r} for index in y]
+baseline_index = next(iter(sorted(highlighted)))
+baseline_value = values[baseline_index]
+if PLOT_VARIANT == "ablation":
+    ax.axvline(
+        baseline_value, color={dark!r}, linewidth=0.85, linestyle="--",
+        alpha=0.72, zorder=0,
+    )
+elif PLOT_VARIANT == "ranked":
+    for index in y:
+        if index % 2:
+            ax.axhspan(index - 0.46, index + 0.46, color="#F3F4F6", zorder=0)
+sample_sizes = [number(row.get("n")) for row in rows]
+finite_sizes = [value for value in sample_sizes if value is not None and value > 0]
+size_low = min(finite_sizes) if finite_sizes else 1.0
+size_high = max(finite_sizes) if finite_sizes else 1.0
+for index, (value, low, high, color) in enumerate(zip(values, ci_low, ci_high, colors)):
+    if PLOT_VARIANT == "ablation" and index not in highlighted:
+        ax.plot(
+            [value, baseline_value], [index, index], color="#CBD5E1",
+            linewidth=2.8, solid_capstyle="round", zorder=1,
+        )
+    ax.errorbar(
+        value,
+        index,
+        xerr=[[max(0.0, value - low)], [max(0.0, high - value)]],
+        fmt="none",
+        ecolor=color,
+        elinewidth=1.25,
+        capsize=2.4,
+        capthick=1.0,
+        zorder=2,
+    )
+    ax.scatter(
+        value,
+        index,
+        s=(
+            38 if index in highlighted else
+            25 + 24 * (
+                (sample_sizes[index] - size_low) / max(1e-9, size_high - size_low)
+            ) if PLOT_VARIANT == "slice" and sample_sizes[index] is not None else
+            27
+        ),
+        marker="D" if index in highlighted else "o",
+        color=color,
+        edgecolor="white",
+        linewidth=0.55,
+        zorder=3,
+    )
+    if PLOT_VARIANT == "ablation" and index not in highlighted:
+        annotation = "Δ={{:+.3g}}".format(value - baseline_value)
+    elif PLOT_VARIANT == "slice" and sample_sizes[index] is not None:
+        annotation = "{{:.3g}}  (n={{:g}})".format(value, sample_sizes[index])
+    else:
+        annotation = "{{:.3g}}".format(value)
+    ax.annotate(
+        annotation, (value, index), xytext=(7, 0), textcoords="offset points",
+        va="center", color={dark!r}, fontsize={annotation_font_size},
+    )
+ax.set_yticks(y, labels)
+ax.invert_yaxis()
+ax.set_xlabel({metric!r}.replace("_", " ").title())
+ax.spines["left"].set_color({dark!r})
+ax.spines["bottom"].set_color({dark!r})
+ax.margins(x=0.12, y=0.18)
+fig.tight_layout(pad=0.7)
+output = Path(__file__).with_name({stem!r})
+fig.savefig(output.with_suffix(".pdf"), bbox_inches="tight")
+fig.savefig(output.with_suffix(".svg"), bbox_inches="tight")
+fig.savefig(output.with_suffix(".png"), dpi={dpi}, bbox_inches="tight")
+plt.close(fig)

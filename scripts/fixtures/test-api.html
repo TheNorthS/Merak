@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Merak API Test</h2>
+<button onclick="testLatex()">Test LaTeX Compile</button>
+<button onclick="testPptx()">Test PPTX Read</button>
+<button onclick="testCreate()">Test Create File</button>
+<button onclick="testDelete()">Test Delete File</button>
+<pre id="output" style="background:#111;color:#0f0;padding:10px;max-height:400px;overflow:auto"></pre>
+<script>
+const API = 'http://127.0.0.1:8011'
+const log = (msg) => { document.getElementById('output').textContent += msg + '\n' }
+
+async function testLatex() {
+  log('--- Testing LaTeX Compile ---')
+  try {
+    const res = await fetch(API + '/api/files/latex-compile', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({project_dir: 'F:\\桌面\\CMAPSS-release-master', main_tex: 'test.tex'})
+    })
+    log('Status: ' + res.status)
+    const data = await res.json()
+    log('Success: ' + data.success + ', Pages: ' + data.pages + ', Compiler: ' + data.compiler)
+    if (!data.success) log('Error: ' + data.error)
+  } catch(e) { log('FETCH ERROR: ' + e.message) }
+}
+
+async function testPptx() {
+  log('--- Testing PPTX Read ---')
+  // 需要一个实际的 pptx 文件路径
+  try {
+    const res = await fetch(API + '/api/files/list?path=F%3A%5C%E6%A1%8C%E9%9D%A2')
+    log('Status: ' + res.status)
+    const data = await res.json()
+    const pptx = data.find(f => f.name.endsWith('.pptx'))
+    if (pptx) {
+      log('Found PPTX: ' + pptx.path)
+      const binRes = await fetch(API + '/api/files/read-binary?path=' + encodeURIComponent(pptx.path))
+      log('Binary status: ' + binRes.status + ', size: ' + (await binRes.arrayBuffer()).byteLength)
+    } else { log('No .pptx found on desktop') }
+  } catch(e) { log('FETCH ERROR: ' + e.message) }
+}
+
+async function testCreate() {
+  log('--- Testing Create ---')
+  try {
+    const res = await fetch(API + '/api/files/create', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({path: 'D:\\Python\\ARES\\merak-ide\\__test_create__.txt', is_directory: false})
+    })
+    log('Status: ' + res.status)
+    log(JSON.stringify(await res.json()))
+  } catch(e) { log('FETCH ERROR: ' + e.message) }
+}
+
+async function testDelete() {
+  log('--- Testing Delete ---')
+  try {
+    const res = await fetch(API + '/api/files/delete', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({path: 'D:\\Python\\ARES\\merak-ide\\__test_create__.txt'})
+    })
+    log('Status: ' + res.status)
+    log(JSON.stringify(await res.json()))
+  } catch(e) { log('FETCH ERROR: ' + e.message) }
+}
+</script>
+</body>
+</html>

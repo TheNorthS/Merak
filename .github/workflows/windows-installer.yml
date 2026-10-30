@@ -1,0 +1,55 @@
+name: Windows installer
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    uses: ./.github/workflows/local-verification.yml
+
+  build:
+    needs: verify
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      PYTHONUTF8: '1'
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Check release version
+        run: node scripts/release-artifacts.cjs --check-version
+      - run: npm ci
+      - run: python -m pip install --require-hashes -r requirements.lock
+      - name: Build Windows installer
+        run: npm run build
+      - name: Smoke test bundled backend and desktop WebSocket
+        run: npm run verify:package
+      - name: Generate checksums
+        run: npm run release:checksums
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Merak-Windows-x64
+          path: |
+            release/Merak-Setup-*.exe
+            release/SHA256SUMS.txt
+            release/build-info.json
+            release/package-smoke.json
+            release/desktop-smoke.json
+            release/resume-smoke.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30

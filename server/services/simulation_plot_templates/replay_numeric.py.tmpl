@@ -1,0 +1,33 @@
+"""Reconstruct the archived numerical records in a new directory; never overwrite evidence."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import sys
+import zipfile
+
+directory = Path(__file__).resolve().parent
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--output', type=Path, required=True)
+args = parser.parse_args()
+report = json.loads((directory / 'REPLAY_VERIFICATION.json').read_bytes())
+for name, checksum in report['capsule_files'].items():
+    path = (directory / name).resolve()
+    if not path.is_relative_to(directory) or hashlib.sha256(path.read_bytes()).hexdigest() != checksum:
+        raise SystemExit('Capsule file integrity failed: ' + name)
+index = json.loads((directory / 'SOURCE_INDEX.json').read_bytes())
+with zipfile.ZipFile(directory / 'source.zip') as archive:
+    if set(archive.namelist()) != set(index):
+        raise SystemExit('Source inventory differs')
+    for name, checksum in index.items():
+        if hashlib.sha256(archive.read(name)).hexdigest() != checksum:
+            raise SystemExit('Source integrity failed: ' + name)
+sys.path.insert(0, str(directory / 'source.zip'))
+from server.services.simulation_numeric_replay import replay_numeric_records
+inputs = json.loads((directory / 'inputs.json').read_bytes())
+output = args.output.resolve()
+replay_numeric_records(inputs, output)
+actual = {name: hashlib.sha256((output / name).read_bytes()).hexdigest() for name in report['records']}
+if actual != report['records']:
+    raise SystemExit('Reconstructed numerical records differ from the archived evidence')
+print(json.dumps({'accepted': True, 'exact_records': len(actual), 'training_executed': False}))

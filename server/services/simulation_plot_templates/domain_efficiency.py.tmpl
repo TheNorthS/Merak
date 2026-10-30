@@ -1,0 +1,29 @@
+"""Render parameter/FLOPs efficiency with paired frontiers."""
+from pathlib import Path
+import csv
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+plt.rcParams.update({{"font.family":"sans-serif", "font.sans-serif":{fonts!r}, "font.size":{font_size}, "axes.labelsize":{font_size}, "pdf.fonttype":42, "ps.fonttype":42, "svg.fonttype":"none"}})
+ROOT = Path(__file__).resolve().parents[2]
+with (ROOT / {data_path!r}).open("r", encoding="utf-8-sig", newline="") as handle: rows = list(csv.DictReader(handle))
+def number(raw):
+    try: return float(str(raw).strip())
+    except (TypeError, ValueError): return None
+missing = [str(r.get("row_id") or i+1) for i,r in enumerate(rows) if number(r.get("value")) is None or number(r.get("ci_low")) is None or number(r.get("ci_high")) is None or number(r.get("parameters_m")) is None or number(r.get("flops_g")) is None or not str(r.get("source_run_id") or "").strip()]
+if not rows or missing: raise SystemExit("No figure rendered: incomplete efficiency rows: " + (", ".join(missing) if missing else "all rows"))
+fig, axes = plt.subplots(1, 2, figsize=({width}, 3.15))
+for panel, field, xlabel in zip(axes, ("parameters_m", "flops_g"), ("Parameters (M)", "FLOPs (G)")):
+    x = [number(r.get(field)) for r in rows]; y = [number(r.get("value")) for r in rows]
+    low = [number(r.get("ci_low")) for r in rows]; high = [number(r.get("ci_high")) for r in rows]
+    panel.scatter(x, y, s=[42 + 10*i for i in range(len(rows))], c=[{grey!r}, {blue!r}, {orange!r}, {blue!r}, {orange!r}][:len(rows)], edgecolors="white", linewidths=0.7, zorder=3)
+    for idx, row in enumerate(rows):
+        panel.errorbar(x[idx], y[idx], yerr=[[y[idx]-low[idx]], [high[idx]-y[idx]]], fmt="none", ecolor="#222222", elinewidth=0.8, capsize=2, zorder=2)
+        panel.annotate(str(row.get("method") or "method"), (x[idx], y[idx]), xytext=(4, 4), textcoords="offset points", fontsize={tick_font_size})
+    panel.set_xlabel(xlabel); panel.set_ylabel({metric!r}); panel.set_title("Score vs " + xlabel, fontsize={panel_font_size})
+    panel.spines["top"].set_visible(False); panel.spines["right"].set_visible(False)
+fig.tight_layout(pad=0.7)
+output = Path(__file__).with_name({stem!r})
+for suffix in (".pdf", ".svg"): fig.savefig(output.with_suffix(suffix), bbox_inches="tight")
+fig.savefig(output.with_suffix(".png"), dpi={dpi}, bbox_inches="tight")
+plt.close(fig)

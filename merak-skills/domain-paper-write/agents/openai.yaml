@@ -1,0 +1,4 @@
+interface:
+  display_name: "Domain Paper Write"
+  short_description: "Write venue-aware papers across research disciplines"
+  default_prompt: "Draft the requested manuscript section using the publication profile and evidence map."

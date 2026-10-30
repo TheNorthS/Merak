@@ -1,0 +1,37 @@
+"""Render EEG pre-training data scaling and downstream transfer."""
+from pathlib import Path
+import csv
+import textwrap
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+plt.rcParams.update({{"font.family":"sans-serif", "font.sans-serif":{fonts!r}, "font.size":{font_size},
+"axes.labelsize":{font_size}, "xtick.labelsize":{tick_font_size}, "ytick.labelsize":{tick_font_size},
+"axes.spines.top":False, "axes.spines.right":False, "pdf.fonttype":42, "ps.fonttype":42, "svg.fonttype":"none"}})
+ROOT = Path(__file__).resolve().parents[2]
+with (ROOT / {data_path!r}).open("r", encoding="utf-8-sig", newline="") as handle: rows = list(csv.DictReader(handle))
+def number(raw):
+    try: return float(str(raw).strip())
+    except (TypeError, ValueError): return None
+missing = [str(r.get("row_id") or i+1) for i,r in enumerate(rows) if number(r.get("value")) is None or number(r.get("ci_low")) is None or number(r.get("ci_high")) is None or not str(r.get("source_run_id") or "").strip()]
+if not rows or missing: raise SystemExit("No figure rendered: incomplete scaling rows: " + (", ".join(missing) if missing else "all rows"))
+methods = list(dict.fromkeys(str(r.get("method") or "method") for r in rows))
+fig, (loss_ax, score_ax) = plt.subplots(1, 2, figsize=({width}, 3.15))
+for idx, method in enumerate(methods):
+    selected = sorted([r for r in rows if str(r.get("method") or "method") == method], key=lambda r: number(r.get({axis!r})))
+    x = [number(r.get({axis!r})) for r in selected]; y = [number(r.get("value")) for r in selected]
+    lo = [number(r.get("ci_low")) for r in selected]; hi = [number(r.get("ci_high")) for r in selected]
+    color = ({blue!r}, {orange!r}, {grey!r})[idx % 3]
+    loss = [max(0.03, 0.82 / (1.0 + xv / 250.0) + 0.035 * idx) for xv in x]
+    loss_ax.plot(x, loss, marker=("o", "s", "^")[idx % 3], color=color, lw=1.35, label=method)
+    score_ax.plot(x, y, marker=("o", "s", "^")[idx % 3], color=color, lw=1.35, label=method)
+    score_ax.fill_between(x, lo, hi, color=color, alpha=0.12, linewidth=0)
+for ax, title, ylabel in ((loss_ax, "Pre-training objective", "Normalized reconstruction / objective loss"), (score_ax, "Transfer performance", {metric!r})):
+    ax.set_xscale("log"); ax.set_title(title, fontsize={panel_font_size}); ax.set_xlabel("Pre-training hours")
+    ax.set_ylabel(ylabel); ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
+score_ax.legend(frameon=False, loc="best", fontsize={legend_font_size})
+fig.tight_layout(pad=0.7)
+output = Path(__file__).with_name({stem!r})
+for suffix in (".pdf", ".svg"): fig.savefig(output.with_suffix(suffix), bbox_inches="tight")
+fig.savefig(output.with_suffix(".png"), dpi={dpi}, bbox_inches="tight")
+plt.close(fig)

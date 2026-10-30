@@ -1,0 +1,80 @@
+"""Render a downstream EEG task matrix with grouped uncertainty intervals."""
+from pathlib import Path
+import csv
+import math
+import textwrap
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({{
+    "font.family": "sans-serif", "font.sans-serif": {fonts!r},
+    "font.size": {font_size}, "axes.labelsize": {font_size},
+    "xtick.labelsize": {tick_font_size},
+    "ytick.labelsize": {tick_font_size},
+    "legend.fontsize": {legend_font_size},
+    "axes.linewidth": 0.8, "axes.spines.top": False,
+    "axes.spines.right": False, "pdf.fonttype": 42,
+    "ps.fonttype": 42, "svg.fonttype": "none",
+}})
+ROOT = Path(__file__).resolve().parents[2]
+with (ROOT / {data_path!r}).open("r", encoding="utf-8-sig", newline="") as handle:
+    rows = list(csv.DictReader(handle))
+def number(raw):
+    try: return float(str(raw).strip())
+    except (TypeError, ValueError): return None
+missing = [str(row.get("row_id") or i + 1) for i, row in enumerate(rows)
+           if number(row.get("value")) is None or number(row.get("ci_low")) is None
+           or number(row.get("ci_high")) is None
+           or not str(row.get("source_run_id") or "").strip()]
+if not rows or missing:
+    raise SystemExit("No figure rendered: incomplete EEG benchmark rows: " + (", ".join(missing) if missing else "all rows"))
+datasets = list(dict.fromkeys(str(row.get("dataset") or "dataset") for row in rows))
+methods = list(dict.fromkeys(str(row.get("method") or "method") for row in rows))
+mean_ranks = {{method: next((str(row.get("mean_task_rank") or "") for row in rows if str(row.get("method") or "method") == method), "") for method in methods}}
+cols = 4 if len(datasets) > 4 else max(1, len(datasets))
+rows_n = int(math.ceil(len(datasets) / cols))
+legend_labels = ["\n".join(textwrap.wrap(
+    method + (f" (rank={{mean_ranks[method]}})" if mean_ranks.get(method) else ""),
+    28, break_long_words=True, break_on_hyphens=True,
+)) for method in methods]
+legend_columns = min(2, len(methods))
+legend_rows = int(math.ceil(len(methods) / legend_columns))
+legend_lines = sum(max(
+    len(legend_labels[index].splitlines())
+    for index in range(row, len(methods), legend_rows)
+) for row in range(legend_rows))
+legend_height = 0.18 * (legend_lines + 0.5 * legend_rows) + 0.18
+figure_height = max(2.6, 1.72 * rows_n + 0.55) + legend_height
+fig, axes = plt.subplots(rows_n, cols, figsize=({width}, figure_height), squeeze=False)
+axes_flat = list(axes.flat)
+for panel, dataset in zip(axes_flat, datasets):
+    selected = [row for row in rows if str(row.get("dataset") or "dataset") == dataset]
+    values = [number(row.get("value")) for row in selected]
+    lows = [number(row.get("ci_low")) for row in selected]
+    highs = [number(row.get("ci_high")) for row in selected]
+    x = list(range(len(selected)))
+    for idx, (row, value, low, high) in enumerate(zip(selected, values, lows, highs)):
+        color = {colors!r}[idx % len({colors!r})]
+        panel.errorbar(idx, value, yerr=[[max(0.0, value-low)], [max(0.0, high-value)]],
+                       fmt="o", ms=4.8, lw=1.0, capsize=2.2, color=color,
+                       markerfacecolor="white", markeredgewidth=0.9,
+                       label=(str(row.get("method") or "method") + (f" (rank={{mean_ranks[str(row.get('method') or 'method')]}})" if mean_ranks.get(str(row.get("method") or "method")) else "")))
+    panel.set_title("\n".join(textwrap.wrap(dataset, 24)), fontsize={panel_font_size})
+    panel.set_xticks(x, ["" for _row in selected])
+    panel.tick_params(axis="both", labelsize={small_font_size})
+    panel.spines["top"].set_visible(False); panel.spines["right"].set_visible(False)
+    panel.set_ylim(bottom=max(0.0, min(number(row.get("ci_low")) for row in selected) - 0.02))
+    panel.grid(axis="y", color="#D1D5DB", linewidth=0.45, alpha=0.65)
+for panel in axes_flat[len(datasets):]: panel.axis("off")
+handles, labels = axes_flat[0].get_legend_handles_labels()
+visible_legend_labels = ["\n".join(textwrap.wrap(label, 28)) for label in labels]
+if handles: fig.legend(handles, visible_legend_labels, frameon=False,
+                       ncol=legend_columns, loc="upper center", bbox_to_anchor=(0.5, 0.99))
+fig.supxlabel({metric!r} + (" (higher is better)" if {metric_direction!r} == "maximize" else " (lower is better)"), y=0.01)
+fig.supylabel("Downstream task score", x=0.01)
+fig.tight_layout(rect=(0.04, 0.06, 0.99, 1 - legend_height / figure_height), pad=0.65)
+output = Path(__file__).with_name({stem!r})
+for suffix in (".pdf", ".svg"): fig.savefig(output.with_suffix(suffix), bbox_inches="tight")
+fig.savefig(output.with_suffix(".png"), dpi={dpi}, bbox_inches="tight")
+plt.close(fig)

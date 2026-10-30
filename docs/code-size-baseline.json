@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "production_limit": 800,
+  "test_limit": 1200,
+  "class_limit": 500,
+  "function_limit": 80,
+  "classes": {},
+  "functions": {},
+  "files": {}
+}

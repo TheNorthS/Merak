@@ -1,0 +1,4 @@
+interface:
+  display_name: "Domain Review Loop"
+  short_description: "Run discipline-aware, evidence-bounded peer review"
+  default_prompt: "Review the manuscript against its target venue, study archetype, and evidence status."

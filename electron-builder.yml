@@ -1,0 +1,51 @@
+# Electron Builder 配置
+# Merak application identity; legacy installations remain separate.
+appId: com.merak.ide
+productName: Merak
+copyright: Copyright © 2026 NorthS Team
+
+directories:
+  output: release
+
+artifactName: Merak-Setup-${version}-${arch}.${ext}
+asar: true
+npmRebuild: false
+electronDist: node_modules/electron/dist
+
+# Reject direct electron-builder runs when the OS/arch-specific Python bundle
+# has not been built. `npm run build` produces and self-checks it first.
+beforePack: scripts/build-backend.js
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+  - LICENSE
+  - "!node_modules/**/*"
+
+win:
+  icon: resources/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  runAfterFinish: false
+  deleteAppDataOnUninstall: false
+  installerLanguages:
+    - en_US
+    - zh_CN
+
+# 将 resources 文件打包进安装包
+extraResources:
+  - from: resources/server-bundle/runtime/win32-x64
+    to: server-bundle/runtime/win32-x64
+    filter:
+      - "**/*"
+  - from: resources/drawio-export.html
+    to: drawio-export.html

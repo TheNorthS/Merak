@@ -1,0 +1,4 @@
+interface:
+  display_name: "Domain Idea Discovery"
+  short_description: "Generate discipline-appropriate, falsifiable research ideas"
+  default_prompt: "Generate and rank research ideas using the current publication profile and evidence base."

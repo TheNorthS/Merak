@@ -1,0 +1,4 @@
+interface:
+  display_name: "Domain Novelty Check"
+  short_description: "Assess novelty against discipline-specific prior work"
+  default_prompt: "Audit novelty and nearest prior work for the current research profile."

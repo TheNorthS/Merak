@@ -1,0 +1,4 @@
+interface:
+  display_name: "Domain Experiment Plan"
+  short_description: "Design evidence plans appropriate to the study archetype"
+  default_prompt: "Create a falsifiable, discipline-appropriate study and execution plan."

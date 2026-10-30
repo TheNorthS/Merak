@@ -1,0 +1,124 @@
+name: Local contracts
+on:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: contracts-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    env:
+      PYTHONUTF8: '1'
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - run: npm ci
+      - run: python -m pip install --require-hashes -r requirements.lock
+      - run: npm run verify:local
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/local.xml
+      - run: npm run test:packaging
+      - run: npm run test:audit-repairs
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/audit-repairs.xml
+      - run: npm run test:workflow-108
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/workflow-108.xml
+      - run: npm run test:agent-harness
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/agent-harness.xml
+      - run: npm run test:manual-resume
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/manual-resume.xml
+      - run: npm run test:workflow-111
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/workflow-111.xml
+      - run: npm run test:research-lifecycle
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/research-lifecycle.xml
+      - run: npm run test:implementation-recovery
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/implementation-recovery.xml
+      - run: npm run test:stability-boundaries
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/stability-boundaries.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-scene-inputs server/tests/test_scientific_scene_late_inputs.py server/tests/test_scientific_scene_placement.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/scene-inputs.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-math-domains server/tests/test_manuscript_function_domains.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/math-domains.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-directed-cancel server/tests/test_paper_directed_cancel_resume.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/directed-cancel.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-print-identity server/tests/test_paper_consistency_print_identity.py server/tests/test_paper_canonical_author_target.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/print-identity.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-frozen-review server/tests/test_frozen_review_fingerprints.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/frozen-review.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-draft-audit-routing server/tests/test_draft_audit_routing.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/draft-audit-routing.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-narrative-policy-scope server/tests/test_narrative_policy_scope.py server/tests/test_narrative_accepted_upgrade.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/narrative-policy-scope.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-print-caption server/tests/test_paper_presentation_caption.py server/tests/test_paper_plot_semantics_projection.py server/tests/test_runtime_presentation_review_owner.py server/tests/test_review_print_handoff.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/print-caption.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-slide-scope server/tests/test_slide_scope_ownership.py server/tests/test_scientific_slides.py server/tests/test_slide_contribution_portfolio.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/slide-scope.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-completed-read server/tests/test_completed_state_readonly.py server/tests/test_workflow_readiness.py server/tests/test_workflow_checkpoints_loading_legacy_completed_run_persists.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/completed-read.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-declared-handoff server/tests/test_implementation_declared_handoff.py server/tests/test_implementation_owner_handoff.py server/tests/test_implementation_owner_reconciliation.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/declared-handoff.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-new-review-progress server/tests/test_implementation_new_review_progress.py server/tests/test_paper_new_findings_progress.py server/tests/test_implementation_review_progress.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/new-review-progress.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-simulation-replay server/tests/test_simulation_replay_capsule.py server/tests/test_review_replay_preparation.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/simulation-replay.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-interval-provenance server/tests/test_simulation_interval_caption.py server/tests/test_dataset_calibration_tables.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/interval-provenance.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-pdf-script server/tests/test_publication_pdf_span_evidence.py server/tests/test_pdf_precise_overlap_evidence.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/pdf-script.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-table-author-resume server/tests/test_paper_resume_table_author_order.py server/tests/test_paper_method_presentation_refresh.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/table-author-resume.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-scenario-labels server/tests/test_simulation_score_labels.py server/tests/test_paper_model_consistency.py server/tests/test_table_panel_reference_contract.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/scenario-labels.xml
+      - run: python -B -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp-consistency-response server/tests/test_paper_consistency_invocation.py server/tests/test_paper_stage_invocation.py server/tests/test_readonly_review_closeout.py server/tests/test_review_completion_ownership.py server/tests/test_review_read_progress.py
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results/consistency-response.xml
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.os }}
+          path: test-results/*.xml
+          if-no-files-found: ignore
+          retention-days: 14

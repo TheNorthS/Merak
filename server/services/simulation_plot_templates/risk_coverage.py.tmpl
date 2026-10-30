@@ -1,0 +1,113 @@
+"""Fill every value and CI cell in {data_path}, then rerun this script."""
+from pathlib import Path
+import csv
+import textwrap
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({{
+    "font.family": "sans-serif",
+    "font.sans-serif": {fonts!r},
+    "font.size": {font_size},
+    "axes.labelsize": {font_size},
+    "xtick.labelsize": {tick_font_size},
+    "ytick.labelsize": {tick_font_size},
+    "legend.fontsize": {tick_font_size},
+    "axes.linewidth": 0.8,
+    "xtick.major.width": 0.8,
+    "ytick.major.width": 0.8,
+    "xtick.direction": "out",
+    "ytick.direction": "out",
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "pdf.fonttype": 42,
+    "ps.fonttype": 42,
+    "svg.fonttype": "none",
+}})
+
+ROOT = Path(__file__).resolve().parents[2]
+with (ROOT / {data_path!r}).open("r", encoding="utf-8-sig", newline="") as handle:
+    rows = list(csv.DictReader(handle))
+
+def number(raw):
+    try:
+        return float(str(raw).strip())
+    except (TypeError, ValueError):
+        return None
+
+values = [number(row.get("value")) for row in rows]
+ci_low = [number(row.get("ci_low")) for row in rows]
+ci_high = [number(row.get("ci_high")) for row in rows]
+missing = [
+    str(row.get("row_id") or index + 1)
+    for index, (row, value, low, high) in enumerate(zip(rows, values, ci_low, ci_high))
+    if (
+        value is None or low is None or high is None
+        or not str(row.get("source_run_id") or "").strip()
+    )
+]
+if not rows or missing:
+    detail = ", ".join(missing) if missing else "all rows"
+    raise SystemExit(
+        "No figure rendered: fill provenance-backed value, ci_low, ci_high, and source_run_id "
+        f"for these rows first: {{detail}}"
+    )
+if any(low > value or high < value for value, low, high in zip(values, ci_low, ci_high)):
+    raise SystemExit("No figure rendered: each CI must contain its estimate.")
+has_dataset = any(str(row.get("dataset") or "").strip() for row in rows)
+if has_dataset:
+    fig, (task_ax, ax) = plt.subplots(1, 2, figsize=({width}, 3.55), gridspec_kw={{"width_ratios": [1.15, 1.0]}})
+else:
+    fig, ax = plt.subplots(figsize=({width}, 3.55))
+markers = ["o", "s", "^", "D"]
+line_styles = ["--", "-", "-.", ":"]
+methods = list(dict.fromkeys(row["method"] for row in rows))
+for index, method in enumerate(methods):
+    selected = sorted(
+        [row for row in rows if row["method"] == method],
+        key=lambda row: float(row["coverage"]),
+    )
+    coverage = [float(row["coverage"]) for row in selected]
+    risk = [number(row.get("risk")) if number(row.get("risk")) is not None else number(row.get("value")) for row in selected]
+    low = [number(row.get("risk_ci_low")) if number(row.get("risk_ci_low")) is not None else number(row.get("ci_low")) for row in selected]
+    high = [number(row.get("risk_ci_high")) if number(row.get("risk_ci_high")) is not None else number(row.get("ci_high")) for row in selected]
+    color = {colors!r}[index % len({colors!r})]
+    ax.plot(
+        coverage, risk, marker=markers[index % len(markers)], markersize=4.2,
+        linewidth=1.5, linestyle=line_styles[index % len(line_styles)],
+        color=color, markerfacecolor="white", markeredgewidth=0.9, label=method,
+    )
+    ax.fill_between(coverage, low, high, color=color, alpha=0.12, linewidth=0)
+if has_dataset:
+    datasets = list(dict.fromkeys(str(row.get("dataset") or "Dataset") for row in rows))
+    bar_width = min(0.32, 0.72 / max(1, len(methods)))
+    for index, method in enumerate(methods):
+        selected = [row for row in rows if row["method"] == method]
+        by_dataset = {{str(row.get("dataset") or "Dataset"): row for row in selected}}
+        x = [position + (index - (len(methods) - 1) / 2) * bar_width for position in range(len(datasets))]
+        estimates = [number(by_dataset[dataset].get("value")) for dataset in datasets]
+        lows = [number(by_dataset[dataset].get("ci_low")) for dataset in datasets]
+        highs = [number(by_dataset[dataset].get("ci_high")) for dataset in datasets]
+        color = {colors!r}[index % len({colors!r})]
+        task_ax.bar(x, estimates, width=bar_width, color=color, alpha=0.84, label=method)
+        task_ax.errorbar(x, estimates, yerr=[
+            [max(0.0, estimate - low) for estimate, low in zip(estimates, lows)],
+            [max(0.0, high - estimate) for estimate, high in zip(estimates, highs)],
+        ], fmt="none", ecolor="#222222", elinewidth=0.75, capsize=1.8)
+    task_ax.set_xticks(range(len(datasets)), ["\\n".join(textwrap.wrap(dataset, 13)) for dataset in datasets], rotation=28, ha="right")
+    task_ax.set_xlabel("Dataset / task"); task_ax.set_ylabel("Expected calibration error")
+    task_ax.set_title("Task-level calibration", fontsize={panel_font_size})
+    task_ax.grid(axis="y", color="#D1D5DB", linewidth=0.4, alpha=0.6)
+ax.set_xlabel({x_label!r})
+ax.set_ylabel({y_label!r})
+if has_dataset: ax.set_title("Selective prediction", fontsize={panel_font_size})
+ax.set_xlim(0.45, 1.02)
+ax.legend(frameon=False, ncol=2, loc="best", handlelength=2.6)
+ax.margins(y=0.12)
+fig.tight_layout(pad=0.7)
+output = Path(__file__).with_name({output_stem!r})
+fig.savefig(output.with_suffix(".pdf"), bbox_inches="tight")
+fig.savefig(output.with_suffix(".svg"), bbox_inches="tight")
+fig.savefig(output.with_suffix(".png"), dpi={dpi}, bbox_inches="tight")
+plt.close(fig)

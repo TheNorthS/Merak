@@ -1,0 +1,4 @@
+interface:
+  display_name: "Domain Narrative"
+  short_description: "Build an evidence-bounded scientific narrative"
+  default_prompt: "Build the manuscript narrative from accepted evidence and the publication profile."

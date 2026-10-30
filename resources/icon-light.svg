@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Merak — NorthS Team</title>
+  <rect x="1" y="1" width="254" height="254" rx="55" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+  <polygon points="48,191 83,87 128,131 128,169 95,137 77,191" fill="#142b50"/>
+  <polygon points="128,131 173,87 208,191 179,191 161,137 128,169" fill="#346de3"/>
+  <polygon points="128,27 136,49 158,57 136,65 128,87 120,65 98,57 120,49" fill="#089bac"/>
+</svg>
