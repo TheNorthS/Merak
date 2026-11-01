@@ -14,7 +14,7 @@ git remote -v
 git add .
 git diff --cached --stat
 git diff --cached --name-only
-git commit -m "release: prepare 0.1.1 public test release"
+git commit -m "release: prepare 0.1.2 public test release"
 git push -u origin HEAD
 ```
 
@@ -59,7 +59,8 @@ npm run release:checksums
 所有 Actions 都由维护者手动启动。推送分支、Pull Request 和推送标签不触发构建或检查。
 
 `local-verification.yml` 提供手动运行入口，也可被手动安装包工作流调用。
-`windows-installer.yml` 仅使用 `workflow_dispatch`：先验证，再构建安装包、执行随包
+`windows-installer.yml` 仅使用 `workflow_dispatch`：先检查版本一致性和远端标签/Release
+是否已存在，再验证、构建安装包、执行随包
 检查、生成校验和并上传 Actions artifact。构建成功后，发布任务下载同次构建产物，
 核对校验和、版本、构建提交与测试结果，然后自动创建标签并发布 GitHub Release。
 
@@ -79,6 +80,7 @@ npm run release:checksums
 GitHub 自动提供的 `GITHUB_TOKEN`。不需要模型密钥、GPU 凭据或个人访问令牌。
 已有同版本 Release 不会覆盖；重复运行会在发布步骤明确失败。若同名标签指向另一
 提交也会拒绝发布。需要发布更新时提高版本号并新增对应发布说明。
+构建前预检会提前拒绝已占用的版本；发布步骤仍保留标签与构建提交检查，防止预检后发生并发变更。
 只推送源码不会生成安装包；手动运行 Windows installer 才会构建并自动发布。
 本地 `npm run build` 不会上传，需要自行创建 Release 和上传附件。
 

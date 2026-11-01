@@ -4,7 +4,7 @@
 | --- | --- |
 | [使用指南](TUTORIAL.md) | 安装、配置、研究流程、恢复和局部编辑 |
 | [发布指南](RELEASING.md) | 安装包、GitHub Actions 和版本发布 |
-| [0.1.1 发布说明](RELEASE_0.1.1.md) | 本版修复、验证结果与剩余限制 |
+| [0.1.2 发布说明](RELEASE_0.1.2.md) | 本版修复、验证结果与剩余限制 |
 | [稳定性验收](STABILITY_ACCEPTANCE.md) | 正式稳定版的可重复验证门槛 |
 | [工程规范](ENGINEERING_STANDARDS.md) | 代码边界、验证和状态规则 |
 | [仓库维护](REPOSITORY_MAINTENANCE.md) | 源码、测试和个人数据保留规则 |

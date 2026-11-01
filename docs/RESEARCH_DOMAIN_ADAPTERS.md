@@ -53,4 +53,4 @@ The machine-readable source of truth is the `domain_evidence_contract` field in
 
 These are available profile routes, not a claim that all listed families have
 passed repeated real-model end-to-end acceptance. See the current
-[release verification scope](RELEASE_0.1.1.md).
+[release verification scope](RELEASE_0.1.2.md).

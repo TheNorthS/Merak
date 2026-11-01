@@ -25,4 +25,4 @@
 相关回归覆盖叙事策略依赖范围、已验收阶段重验证、外部文件修改和完成状态只读。
 参见 `test_narrative_policy_scope.py`、`test_narrative_accepted_upgrade.py` 和
 `test_completed_state_readonly.py`。纯测试通过不等于跨项目稳定性验收完成，
-发布状态见 [版本说明](RELEASE_0.1.1.md)。
+发布状态见 [版本说明](RELEASE_0.1.2.md)。

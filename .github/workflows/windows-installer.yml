@@ -11,7 +11,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Check version and release availability before building
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          node scripts/release-artifacts.cjs --check-version
+          node --test scripts/release-preflight.test.cjs
+          node scripts/release-preflight.cjs
+
   verify:
+    needs: preflight
     uses: ./.github/workflows/local-verification.yml
 
   build:

@@ -97,4 +97,4 @@ require verification against their own source identity.
 
 Local test receipts, project exports and original experiment outputs remain
 outside the public source repository. Product-level release status is documented
-in [RELEASE_0.1.1.md](RELEASE_0.1.1.md).
+in [RELEASE_0.1.2.md](RELEASE_0.1.2.md).

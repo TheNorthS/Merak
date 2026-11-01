@@ -549,7 +549,7 @@ export function SettingsPanel() {
 
               <Separator />
               <div>
-                <p className="text-xs text-muted-foreground">Merak v0.1.1</p>
+                <p className="text-xs text-muted-foreground">Merak v0.1.2</p>
                 <p className="text-2xs text-muted-foreground mt-1">Copyright © 2026 NorthS Team</p>
                 <p className="text-2xs text-muted-foreground mt-1">Research workflows, experiments and scientific writing</p>
               </div>

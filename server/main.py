@@ -76,7 +76,7 @@ async def lifespan(app: FastAPI):
     # differ when the app is launched with ``--host``/``--port``, so avoid
     # printing them as if they described the listening socket; Uvicorn logs
     # the authoritative address immediately after startup.
-    logger.info("Merak Server starting", version="0.1.1")
+    logger.info("Merak Server starting", version="0.1.2")
     try:
         await ssh_manager.start()
         # 启动实验调度器
@@ -155,7 +155,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Merak Server",
     description="Production-grade Research Workflow IDE Backend",
-    version="0.1.1",
+    version="0.1.2",
     lifespan=lifespan,
 )
 
@@ -218,7 +218,7 @@ async def health_check():
 
     return {
         "status": "healthy",
-        "version": "0.1.1",
+        "version": "0.1.2",
         "service": "merak-ide-server",
         # Loopback desktop ownership marker. It prevents a new renderer from
         # silently attaching to a stale backend process with old in-memory runs.

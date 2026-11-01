@@ -78,4 +78,4 @@ resume/specialist/write-scope/end-to-end regressions; `npm run typecheck`,
 model responses and do not constitute real scientific workflow acceptance.
 
 Release status and remaining verification limits are documented in
-[RELEASE_0.1.1.md](RELEASE_0.1.1.md). Raw model traces remain outside the source repository.
+[RELEASE_0.1.2.md](RELEASE_0.1.2.md). Raw model traces remain outside the source repository.

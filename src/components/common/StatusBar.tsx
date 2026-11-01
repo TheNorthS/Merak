@@ -49,7 +49,7 @@ export function StatusBar() {
 
       {/* 右侧 */}
       <div className="flex items-center gap-1.5">
-        <Badge variant="default" className="h-4 text-2xs font-medium">Merak v0.1.1</Badge>
+        <Badge variant="default" className="h-4 text-2xs font-medium">Merak v0.1.2</Badge>
       </div>
     </div>
   )
