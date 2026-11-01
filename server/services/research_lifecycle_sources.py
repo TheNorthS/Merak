@@ -12,7 +12,7 @@ def lifecycle_source_paths(services: Path, node_id: str) -> list[Path]:
     if node_id in {"review", "audit"}:
         paths.extend(services.parent / "workflows" / name for name in (
             "report_revision_plan.py", "report_revision_store.py", "report_revision_impact.py", "report_impact_followup.py", "report_refresh_recovery.py", "report_print_recovery.py",
-            "report_revision_execution.py", "report_revision_coordinator.py", "report_revision_transport.py", "draft_audit_routing.py",
+            "report_revision_execution.py", "report_iteration_handoff.py", "report_revision_coordinator.py", "report_revision_transport.py", "draft_audit_routing.py",
             "audit_target_location.py", "audit_target_owner.py"))
         paths.append(services / "specialist_dependency_review.py")
         paths.append(services / "specialist_targeted_repair.py")

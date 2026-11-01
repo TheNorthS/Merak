@@ -26,6 +26,14 @@ class StageModelInvocation:
         self.last_event = 0.0
         from ..services.implementation_review_receipt import stage_obligation_signature
         self.obligation_signature = stage_obligation_signature(context.root, state.effective_targets)
+        self.prepared_arguments: str | None = None
+        self.prepared_input_fingerprint: str | None = None
+
+    def resume_fingerprint(self) -> str:
+        """Changed review obligations must not resume a session for an older repair."""
+        from ..agent.execution_harness import fingerprint
+        return fingerprint([self.context.service.input_hash(self.context.root, self.state.stage.id,
+                            self.context.direction), self.obligation_signature])
 
     def mark(self, status: str, *, output: str = "", error: str = "") -> None:
         from ..services.skill_orchestrator import skill_orchestrator
@@ -110,7 +118,7 @@ class StageModelInvocation:
         task = asyncio.create_task(
             invoke_skill(
                 "domain-experiment-plan",
-                self._arguments(),
+                self.prepared_arguments if self.prepared_arguments is not None else self._arguments(),
                 project_path=context.run.project_path,
                 parent_context="skill-chain:workflow>exp-design-staged-"
                 + state.stage.id,
@@ -127,7 +135,7 @@ class StageModelInvocation:
                     "fabricate results, invoke nested skills, or replace the frozen scientific idea."
                 ),
                 max_iterations=24,
-                resume_input_fingerprint=context.service.input_hash(context.root, state.stage.id, context.direction),
+                resume_input_fingerprint=self.prepared_input_fingerprint or self.resume_fingerprint(),
             )
         )
         return await context.host._await_agent_with_activity_watchdog(

@@ -17,6 +17,45 @@ def _review():
     }]}
 
 
+def test_source_review_findings_override_a_passing_static_stage_prompt(tmp_path):
+    from server.workflows.implementation_model_invocation import StageModelInvocation
+
+    context = _context(tmp_path)
+    persist_review(tmp_path, "reviewed-source-1", _review())
+    stage = context.stages[0]
+    assert context.service.validate_stage(tmp_path, stage.id, context.direction)["passed"]
+    state = prepare_stage(context, stage)
+    prompt = StageModelInvocation(context, state, 1)._arguments()
+    assert "Review data-lineage" in prompt
+    assert "Fresh deterministic validation has passed every current canonical stage target" not in prompt
+    assert "independent review" in prompt
+
+
+@pytest.mark.parametrize("blocked", [True, False])
+def test_active_repair_includes_owned_warnings_and_evidence_without_warning_only_loops(tmp_path, blocked):
+    from server.services.implementation_review_receipt import stage_obligations
+
+    review = _review()
+    warning = {"id": "source-revision", "severity": "warning", "scope": "implementation_correctness",
+               "message": "The revision defaults to an unregistered placeholder.",
+               "target_files": ["experiments/src/data.py"],
+               "evidence": ["persist_record uses config.get('revision', 'unregistered')"],
+               "remediation": "Require an actual source identity before persistence."}
+    review["findings"] = ([*review["findings"]] if blocked else []) + [warning, {
+        **warning, "id": "external-data", "scope": "execution_prerequisite",
+    }, {**warning, "id": "other-owner", "target_files": ["experiments/src/other.py"]}]
+    review["blocking"] = blocked
+    persist_review(tmp_path, "reviewed-source-1", review)
+    obligations = stage_obligations(tmp_path, ["experiments/src/data.py"])
+    if not blocked:
+        assert obligations == []
+        return
+    assert len(obligations) == 2
+    assert "source-revision" in obligations[1] and "warning" in obligations[1]
+    assert warning["evidence"][0] in obligations[1]
+    assert "external-data" not in "\n".join(obligations)
+
+
 def test_resolved_declared_obligation_does_not_reopen_the_same_independent_finding(tmp_path, monkeypatch):
     from server.services import implementation_review_receipt as receipts
     from server.workflows.implementation_model_invocation import StageModelInvocation

@@ -90,8 +90,16 @@ def declared_entrypoint(root: Path, fallback: str) -> str:
     return checked
 
 
-def existing_stage_review_instruction(root: Path, stage_id: str, report: dict[str, Any]) -> str:
-    """Only a complete fresh semantic PASS may request review without needless edits."""
+def existing_stage_review_instruction(
+    root: Path, stage_id: str, report: dict[str, Any], findings: list[str] | None = None,
+) -> str:
+    """Static validation cannot dismiss outstanding owner or independent-review findings."""
+    if any(str(item).strip() for item in findings or []):
+        return ("Address every listed finding within the owned targets. A passing static check does not resolve "
+                "an independent review finding. Repair the defective implementation and re-read the affected "
+                "call paths; for a disputed finding, report concrete source evidence for independent review. "
+                "Preserve unrelated correct code. Report each finding ID, changes, checks and unresolved issues; "
+                "an owner response does not grant independent review acceptance.")
     declared = target_declaration(root)
     targets = declared[stage_id] if declared else report.get("targets") or []
     if (not targets or report.get("stage_id") != stage_id

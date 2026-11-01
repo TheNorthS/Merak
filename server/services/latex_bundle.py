@@ -39,6 +39,7 @@ def _resolve(
     project_root: Path,
     suffixes: Iterable[str] = ("",),
 ) -> Path | None:
+    from .paper_candidate_io import candidate_path
     value = str(raw or "").strip().strip("\"'")
     if not value or any(token in value for token in ("\\", "#", "{", "}")):
         return None
@@ -57,8 +58,8 @@ def _resolve(
                 continue
             if (
                 _inside(candidate, project_root)
-                and candidate.is_file()
-                and candidate.stat().st_size > 0
+                and candidate_path(candidate).is_file()
+                and candidate_path(candidate).stat().st_size > 0
             ):
                 return candidate
     return None

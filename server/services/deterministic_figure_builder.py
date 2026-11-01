@@ -17,7 +17,7 @@ from .figure_producer_errors import (
 _TEMPLATE_VERSION = "mechanism-discrimination-evaluation-v2"
 _ARCHITECTURE_VERSION = "source-scene-figurespec-v1"
 _ARCHITECTURE_CODE_MODULES = (
-    "scientific_scene_figure", "scientific_scene_geometry", "scientific_scene_placement", "scientific_scene_labels",
+    "scientific_scene_figure", "scientific_scene_topology_layout", "scientific_scene_geometry", "scientific_scene_placement", "scientific_scene_labels",
     "scientific_scene_partitions", "scientific_scene_panel_figure",
     "figurespec_backend", "figurespec_layout_policy", "figure_engine",
     "deterministic_figure_builder", "figure_producer_fingerprint",

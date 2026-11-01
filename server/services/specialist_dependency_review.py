@@ -64,7 +64,7 @@ async def review_changed_specialist_inputs(ctx, record: dict) -> None:
             if _source_bundle(root, [p for p in paths if p.resolve() != artifact.resolve()])[0] != repair['input_hash']:
                 raise ValueError('Specialist inputs changed after interrupted authoring; reassess before review')
         review, response = await _review_entry(root, checked, paths, expected)
-        if not dependency_review_valid(root, review, expected, artifact):
+        while not dependency_review_valid(root, review, expected, artifact):
             if not response.get('issues') or response.get('valid') is not False:
                 raise ValueError('Specialist remains invalid after bounded review: ' + entry['id'] + ': ' + json.dumps(response))
             from .specialist_targeted_repair import repair_specialist_document, next_specialist_attempt
@@ -72,12 +72,6 @@ async def review_changed_specialist_inputs(ctx, record: dict) -> None:
                 next_specialist_attempt(ctx, record, entry, response)
             candidate = await repair_specialist_document(ctx, record, candidate or entry, paths, response['issues'], service)
             review, response = await _review_entry(root, candidate, paths, expected)
-            if not dependency_review_valid(root, review, expected, artifact):
-                next_specialist_attempt(ctx, record, entry, response)
-                candidate = await repair_specialist_document(ctx, record, candidate, paths, response['issues'], service)
-                review, response = await _review_entry(root, candidate, paths, expected)
-                if not dependency_review_valid(root, review, expected, artifact):
-                    raise ValueError('Specialist remains invalid after two verified content attempts: ' + entry['id'] + ': ' + json.dumps(response))
         if candidate:
             entry.update(candidate)
         entry["dependency_review"] = review

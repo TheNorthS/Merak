@@ -236,6 +236,13 @@ def record_manifest_entry(
         registry, root, figure_type, description, output, source, metadata,
     )
     payload = registry.load(figures_root, strict=True)
+    # Registering the same artifact is a read: do not rotate audit identities
+    # merely because a downstream preparation stage visits it again.
+    existing = [item for item in payload.get("figures", []) if item.get("id") == entry["id"]]
+    if len(existing) == 1 and all(existing[0].get(key) == value
+                                  for key, value in entry.items() if key != "created_at"):
+        if set(existing[0]) == set(entry):
+            return figures_root / "FIGURE_MANIFEST.json", existing[0]
     figures = _replace_entry(registry, payload, entry, figures_root, root)
     payload.update({"schema": 1, "updated_at": time.time(), "figures": figures})
     manifest = figures_root / "FIGURE_MANIFEST.json"

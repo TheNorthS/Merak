@@ -53,6 +53,10 @@ def _grow_nodes(spec: dict[str, Any], renderer: ModuleType, multiplier: float) -
         # Keep two pixels beyond the native 28px inset: fractional font widths
         # must not cross wrap_text's exact <= boundary after subtraction.
         minimum_width = max((renderer.estimate_text_width(word, node["font_size"]) + 30 for word in words), default=0)
+        subfont = max(8.0, node["font_size"] - 3)
+        qualifier = str(node.get("sublabel") or "")
+        qualifier_extent = sum(subfont * (1.0 if ord(char) > 0x2E80 else 0.60) for char in qualifier)
+        minimum_width = max(minimum_width, math.ceil(qualifier_extent / 2) + 40 if qualifier else 0)
         node["width"] = max(_number(node.get("width", 120), "node width"), minimum_width)
         main, sub, font, subfont = _text_layout(node, style["font_size"], renderer)
         reserved = 33 if node.get("visual_kind") in GLYPH_HEADERS else 6

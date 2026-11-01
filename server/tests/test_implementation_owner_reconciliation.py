@@ -303,4 +303,9 @@ async def test_stage_invocation_passes_exact_finding_authorized_write_scope(
     assert captured["allowed_write_paths"] == state.effective_targets
     assert captured["allowed_write_paths"] is not state.effective_targets
     assert "METHOD_CONTRACT lifecycle state" in captured["invocation_contract"]
-    assert captured["resume_input_fingerprint"] == context.service.input_hash(context.root, "integration", context.direction)
+    from server.agent.execution_harness import fingerprint
+    from server.services.implementation_review_receipt import stage_obligation_signature
+    assert captured["resume_input_fingerprint"] == fingerprint([
+        context.service.input_hash(context.root, "integration", context.direction),
+        stage_obligation_signature(context.root, state.effective_targets),
+    ])

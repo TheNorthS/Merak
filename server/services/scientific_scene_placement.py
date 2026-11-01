@@ -132,7 +132,9 @@ def normalize_placement(
     fraction = max(0.25, min(1.0, float(contract.get("target_width_fraction") or 1.0)))
     budget = contract.get("complexity_budget") or {}
     minimum = max(8.0, float(contract.get("minimum_placed_font_pt") or budget.get("minimum_placed_font_pt") or 8.0))
-    font = 17.0 if any(str(item.get("label") or "").strip() for item in relations) else 20.0
+    from .scientific_scene_labels import scene_label_parts
+    small_text = any(scene_label_parts(label)[1] for label in (labels or {}).values())
+    font = 17.0 if small_text or any(str(item.get("label") or "").strip() for item in relations) else 20.0
     if font * 468 * fraction / width < minimum:
         raise ValueError("layout exceeds paper-scale typography; split the authored figure portfolio")
     offset_x = (width - (right - left)) / 2 - left

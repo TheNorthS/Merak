@@ -34,10 +34,13 @@ async def ensure_design_review(host: Any, run: Any, direction: str, opts: dict, 
     source_hash = review_source_hash(root)
     receipt = load_review(root)
     assessment = receipt.get("assessment", {})
-    if receipt.get("source_sha256") != source_hash or receipt.get("review_policy") != REVIEW_POLICY:
+    from ..agent.execution_harness import pending_review
+    rebuttal = review_blocks(assessment, opts) and pending_review(root, run.id, "exp-design", source_hash)
+    if receipt.get("source_sha256") != source_hash or receipt.get("review_policy") != REVIEW_POLICY or rebuttal:
         await host._emit(run, "code_review_started", {"node_id": "exp-design"})
-        raw = await host._run_code_review(run, direction, str(opts.get("effort") or "balanced"), assurance)
-        assessment = host._parse_training_check_result(raw, assurance=assurance)
+        from ..services.implementation_review_followup import review_with_followup
+        prior = assessment if receipt.get("review_policy") == REVIEW_POLICY else {}
+        raw, assessment = await review_with_followup(host, run, direction, opts, assurance, prior)
         if review_source_hash(root) != source_hash:
             raise RuntimeError("Implementation sources changed during read-only review; retry from a stable snapshot")
         host._persist_training_check(run, assessment, raw)
@@ -47,6 +50,9 @@ async def ensure_design_review(host: Any, run: Any, direction: str, opts: dict, 
                           "findings": current_review_findings(assessment, opts)})
     opts["_training_check"] = assessment
     run.options["_training_check"] = assessment
+    from ..agent.execution_harness import record_independent_review
+    record_independent_review(root, run.id, "exp-design", source_hash, assessment,
+                              blocking=review_blocks(assessment, opts))
     if review_blocks(assessment, opts):
         raise ImplementationReviewBlocked(assessment, opts)
     return assessment

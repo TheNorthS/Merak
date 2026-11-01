@@ -153,6 +153,7 @@ def parse_training_check_result(
         "schema_version": 1, "verdict": verdict, "summary": summary[:2000],
         "blocking": verdict == "FAIL" or (verdict == "WARN" and strict and has_blocker),
         "assurance": assurance, "findings": findings,
+        "resolved_findings": payload.get("resolved_findings", []),
         "raw_sha256": hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest(),
         "protocol_error": str(payload.get("protocol_error") or ""),
     }

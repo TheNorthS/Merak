@@ -87,6 +87,48 @@ async def test_failed_independent_review_does_not_commit_or_loop(tmp_path, monke
 
 
 @pytest.mark.asyncio
+async def test_new_findings_get_first_repair_within_existing_task_budget(tmp_path, monkeypatch):
+    ctx, record, entry, artifact, source, service, committed = fixture(tmp_path, monkeypatch)
+    ctx.opts['max_revision_rounds'] = 3
+    calls = []
+    async def invoke(skill_name, arguments='', **kw):
+        calls.append(arguments)
+        artifact.write_text('Candidate ' + str(len(calls)))
+        return 'Submitted for verification'
+    responses = iter([{'valid': False, 'issues': [issue]} for issue in
+                      ['Aggregation is wrong', 'Source attribution is unsupported', 'Comparison condition is missing']]
+                     + [{'valid': True, 'issues': []}])
+    async def review(*args):
+        response = next(responses)
+        return {'valid': response['valid']}, response
+    monkeypatch.setattr('server.agent.tools.invoke_skill', invoke)
+    monkeypatch.setattr('server.services.specialist_dependency_review._review_entry', review)
+    monkeypatch.setattr('server.services.specialist_dependency_review.dependency_review_valid', lambda r,v,*a:v['valid'])
+    await review_changed_specialist_inputs(ctx, record)
+    assert len(calls) == 3 and len(committed) == 1
+    assert 'Comparison condition is missing' in calls[-1]
+    assert len(record['specialist_content_history']) == 2
+
+
+@pytest.mark.asyncio
+async def test_distinct_findings_cannot_exceed_task_budget(tmp_path, monkeypatch):
+    ctx, record, entry, artifact, source, service, committed = fixture(tmp_path, monkeypatch)
+    ctx.opts['max_revision_rounds'] = 2
+    author = AsyncMock(return_value='No independent acceptance claimed')
+    monkeypatch.setattr('server.agent.tools.invoke_skill', author)
+    count = 0
+    async def review(*args):
+        nonlocal count
+        count += 1
+        return {'valid': False}, {'valid': False, 'issues': ['Finding ' + str(count)]}
+    monkeypatch.setattr('server.services.specialist_dependency_review._review_entry', review)
+    monkeypatch.setattr('server.services.specialist_dependency_review.dependency_review_valid', lambda *a:False)
+    with pytest.raises(ValueError, match='content repair budget exhausted'):
+        await review_changed_specialist_inputs(ctx, record)
+    assert author.await_count == 2 and not committed
+
+
+@pytest.mark.asyncio
 async def test_input_mutation_and_interrupted_write_are_not_accepted(tmp_path, monkeypatch):
     ctx,record,entry,artifact,source,service,committed=fixture(tmp_path,monkeypatch)
     async def invoke(skill_name, arguments='', **kw):

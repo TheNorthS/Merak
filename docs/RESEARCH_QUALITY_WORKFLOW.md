@@ -6,13 +6,12 @@ user-supplied reference paper and codebase.
 
 ## Skill Execution Semantics
 
-Workflow skills are executable stage contracts, not prompt decorations. Each
-node loads exactly one complete owner `SKILL.md` in its own Agent session.
-Specialist names shown in the UI are unloaded candidates until the owner calls
-the `Skill` tool. That call creates an isolated child session with the
-specialist's complete `SKILL.md`, declared tool allowlist, canonical project
-root, recursion guard, and a durable trace under
-`.merak/skill-invocations/`.
+Workflow skills define stage contracts. Model-owned stages load the selected
+owner or specialist `SKILL.md`; staged implementation and writing may use
+multiple bounded sessions. Deterministic stages use runtime services instead
+of claiming model execution. A listed skill is not executed until its actual
+invocation starts. Invocations bind the complete policy, tool allowlist,
+project root and permitted outputs, with traces under `.merak/skill-invocations/`.
 
 The workflow records owner lifecycle state under
 `.merak/runs/<run_id>.skills.json`. A skill is reported as completed only
@@ -23,9 +22,10 @@ the author's hidden stylistic context.
 Chat and workflow agents use separate sessions and path policies. Chat is
 restricted to user-facing research artifacts and stages file changes for
 approval. Workflow sessions may discover files anywhere inside the canonical
-research project, including read/write audit state under `.merak/`, but cannot
-escape the project root or modify the immutable `.merak/reference_context/`
-snapshot. Workflow tool errors never use Chat-specific policy messages.
+research project, but writes remain subject to node and invocation ownership.
+Runtime-owned acceptance, provenance and execution state cannot be authored by
+the model. The immutable `.merak/reference_context/` snapshot stays read-only.
+Workflow tool errors never use Chat-specific policy messages.
 
 For paper production, the default order is narrative -> executed
 `paper-plan` delegate -> figures -> executed `paper-write` owner -> review
@@ -45,11 +45,13 @@ successful runtime tool event. A model-written metrics file alone is rejected.
 When experiment execution is disabled, the user selects one evidence mode:
 
 - `design_only`: method, study design, replacement schemas, and no quantitative conclusion;
-- `synthetic_preview`: a complete, domain-adapted simulation benchmark with seven
-  publication-quality plots/tables. The rendered manuscript uses normal scientific
-  presentation without warning watermarks or repeated caption notices; Methods keeps
-  one conventional simulation-benchmark statement, while detailed provenance and
-  submission eligibility remain in machine-readable sidecars;
+- `synthetic_preview`: deterministic scenario values for exercising analysis,
+  figures and writing. Seven evidence roles are maintained; the contribution
+  selects which figures and tables appear in the manuscript. This is not proof
+  that the proposed method and baselines were trained or evaluated. The text
+  must explain the construction and inference limits, with a final Simulation
+  Study Disclosure after the conclusion and before the bibliography. Detailed
+  provenance and submission eligibility are also recorded in sidecars;
 - `existing_results`: prior metrics accepted only when a successful runtime event
   owns their current hashes;
 - `secondary_analysis`: public results accepted through
@@ -136,16 +138,18 @@ are internal research controls, not default paper figures.
 
 `paper/tables/TABLE_MANIFEST.json` contains domain-facing study-design, method,
 and provenance-backed result tables only. `figures/FIGURE_MANIFEST.json` keeps
-all IDE-preview assets, but protocol, administrative, placeholder, and synthetic
-entries are forced to `paper_selected=false`. Method figures are validated
+all IDE-preview assets. Administrative and placeholder entries are excluded;
+eligible synthetic-preview figures may be selected for a disclosed draft but
+do not establish empirical evidence or submission readiness. Method figures are validated
 against domain-facing mechanism terms from the selected idea and structured run
 specification rather than against visible internal IDs.
 
 ## Failure Recovery
 
-The deterministic paper builder is a fault-recovery path for a missing or thin
-model draft. It writes a scientific manuscript structure rather than an MERAK run
-report. A substantive model-written manuscript is preserved and revised in place;
-it is never overwritten by a deterministic protocol report. In reference
-innovation mode the fallback cannot replace the innovation brief, baseline
-reproduction, or matched experimental evidence.
+Authors write bounded chapter candidates. Validators inspect the same candidate
+file view before publishing to canonical manuscript paths. Missing or rejected
+content remains unresolved; a model's completion message does not replace files
+or evidence. Deterministic services assemble validated chapters, bind assets and
+compile presentation copies; they do not prove research conclusions or replace
+missing experiments. Recovery revalidates saved candidates and accepted outputs
+against their current dependencies before requesting another model attempt.

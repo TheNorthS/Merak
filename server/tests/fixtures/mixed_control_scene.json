@@ -1,0 +1,142 @@
+{
+  "id": "method_architecture",
+  "scientific_role": "method",
+  "scientific_question": "How do the proposed objectives interact, conflict, or cooperate?",
+  "scientific_scene": {
+    "schema": 1,
+    "objects": [
+      {
+        "id": "recordings",
+        "kind": "input",
+        "label": "Source- and subject-identified EEG with electrode coordinates, references, and task labels",
+        "source_path": "experiments/configs/main.yaml"
+      },
+      {
+        "id": "ledger",
+        "kind": "input",
+        "label": "Pretraining provenance and split manifests",
+        "source_path": "experiments/EXPERIMENT_PLAN.md"
+      },
+      {
+        "id": "permutation",
+        "kind": "operation",
+        "label": "M1 same-signal synchronized signal-coordinate permutation",
+        "source_path": "ideas/SELECTED_IDEA.json"
+      },
+      {
+        "id": "geometry",
+        "kind": "operation",
+        "label": "M2 matched correct, shuffled, and absent geometry",
+        "source_path": "ideas/SELECTED_IDEA.json"
+      },
+      {
+        "id": "isolation",
+        "kind": "operation",
+        "label": "M3 source-isolated frozen transfer",
+        "source_path": "ideas/SELECTED_IDEA.json"
+      },
+      {
+        "id": "endpoints",
+        "kind": "output",
+        "label": "C1 order consistency, C2 external task effects, C3 negative controls",
+        "source_path": "experiments/EXPERIMENT_PLAN.md"
+      }
+    ],
+    "relations": [
+      {
+        "from": "recordings",
+        "to": "permutation",
+        "kind": "data"
+      },
+      {
+        "from": "recordings",
+        "to": "geometry",
+        "kind": "data"
+      },
+      {
+        "from": "ledger",
+        "to": "isolation",
+        "kind": "constraint"
+      },
+      {
+        "from": "permutation",
+        "to": "endpoints",
+        "kind": "data"
+      },
+      {
+        "from": "geometry",
+        "to": "isolation",
+        "kind": "control"
+      },
+      {
+        "from": "isolation",
+        "to": "endpoints",
+        "kind": "data"
+      }
+    ]
+  },
+  "scene_contract": {
+    "contribution_type": "objective_mechanism",
+    "complexity_budget": {
+      "maximum_scientific_questions": 1,
+      "maximum_primary_objects": 8,
+      "maximum_primary_branches": 2,
+      "maximum_visible_labels": 12,
+      "maximum_label_words": 6,
+      "minimum_placed_font_pt": 8.0,
+      "overflow_action": "split",
+      "caption_owns": [
+        "statistical detail",
+        "limitations",
+        "provenance detail",
+        "secondary implementation detail"
+      ]
+    },
+    "target_width_fraction": 1.0,
+    "minimum_placed_font_pt": 8.0
+  },
+  "method_brief": {
+    "publication": {
+      "method_name": "Geometry-Validity Transfer Audit"
+    },
+    "mechanism_nodes": [
+      {
+        "id": "M1",
+        "name": "Matched electrode permutation consistency"
+      },
+      {
+        "id": "M2",
+        "name": "Geometry-validity control"
+      },
+      {
+        "id": "M3",
+        "name": "Source-isolated transfer audit"
+      }
+    ]
+  },
+  "publication_labels": [
+    {
+      "schema": 1,
+      "id": "method.mechanism.1",
+      "kind": "concept",
+      "display_text": "Matched electrode permutation consistency"
+    },
+    {
+      "schema": 1,
+      "id": "method.mechanism.2",
+      "kind": "concept",
+      "display_text": "Geometry-validity control"
+    },
+    {
+      "schema": 1,
+      "id": "method.mechanism.3",
+      "kind": "concept",
+      "display_text": "Source-isolated transfer audit"
+    }
+  ],
+  "claim_ids": [
+    "C1",
+    "C2",
+    "C3"
+  ]
+}

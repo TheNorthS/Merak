@@ -9,6 +9,12 @@ def reopen_missing_source_review(state) -> None:
         if saved.get('status') == 'completed':
             return
         for record in saved.get('report_revisions', {}).values():
+            from .report_iteration_handoff import recover_joined_report_edits
+            if recover_joined_report_edits(Path(state.project_path).resolve(), str(saved.get('run_id') or ''), record):
+                continue
+            from ..services.specialist_targeted_repair import reopen_specialist_review
+            if reopen_specialist_review(Path(state.project_path).resolve(), saved, record):
+                continue
             from .report_refresh_recovery import recover_plan_after_result_binding
             if recover_plan_after_result_binding(Path(state.project_path), saved, record):
                 continue

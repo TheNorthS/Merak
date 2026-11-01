@@ -36,23 +36,31 @@ def persist_review(root: Path, source_hash: str, assessment: dict) -> None:
     })
 
 
+def _source_repair_findings(assessment: dict) -> list[dict]:
+    """Carry related warnings through an active repair, never open a warning-only loop."""
+    from .training_review_policy import execution_artifact_finding
+
+    findings = [item for item in assessment.get("findings", []) if isinstance(item, dict)
+                and not execution_artifact_finding(item) and item.get("scope") != "execution_prerequisite"]
+    blocking = {"blocker", "critical", "error", "fail"}
+    severity = lambda item: str(item.get("severity", "blocker")).casefold()
+    has_blocker = any(severity(item) in blocking for item in findings)
+    return [item for item in findings if severity(item) in blocking
+            or (has_blocker and severity(item) == "warning")]
+
+
 def stage_obligations(root: Path, targets: list[str]) -> list[str]:
     receipt = load_review(root)
     # Retain the old report, but require a fresh policy-aware review before it
     # can authorize author edits or acceptance under the current workflow.
     assessment = receipt.get("assessment", {}) if receipt.get("review_policy") == REVIEW_POLICY else {}
     obligations = []
-    for finding in assessment.get("findings", []):
-        from .training_review_policy import execution_artifact_finding
-        if execution_artifact_finding(finding):
-            continue
-        if finding.get("severity", "blocker") not in {"blocker", "critical", "error", "fail"}:
-            continue
-        if finding.get("scope") == "execution_prerequisite":
-            continue
+    for finding in _source_repair_findings(assessment):
         paths = [str(p).replace("\\", "/").rstrip("/") for p in finding.get("target_files", [])]
         if any(t == p or t.startswith(p + "/") for p in paths for t in targets):
-            obligations.append(f"Review {finding.get('id')}: {finding.get('message')}; {finding.get('remediation', '')}")
+            evidence = "; ".join(str(item) for item in finding.get("evidence") or [])
+            obligations.append(f"Review {finding.get('id')}: [{finding.get('severity', 'blocker')}] "
+                               f"{finding.get('message')}; {finding.get('remediation', '')}; evidence: {evidence}")
     spec_path = root / "experiments/RUN_SPEC.json"
     if spec_path.is_file():
         from .implementation_readiness_checks import readiness_findings

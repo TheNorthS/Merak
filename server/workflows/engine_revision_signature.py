@@ -40,7 +40,7 @@ def revision_artifact_signature(
 def _agent_harness_source_paths(workflows: Path) -> list[Path]:
     return [workflows.parent / "agent" / name for name in (
         "agent_loop.py", "tool_execution.py", "tool_policy.py", "tool_schema.py",
-        "tool_harness.py", "tool_deadline.py", "tool_process.py", "tools/tool_registration.py",
+        "tool_harness.py", "execution_harness.py", "tool_deadline.py", "tool_process.py", "tools/tool_registration.py",
         "model_deadlines.py", "model_transport.py", "model_observation.py", "skill_resume.py",
         "openai_stream.py", "remote_errors.py",
         "reviewer_scope.py", "delegate_activity.py", "tools/review_and_domain_tools.py", "tools/skill_tool.py",
@@ -54,7 +54,7 @@ def _node_validator_names(node_id: str) -> set[str]:
             "experiment_implementation_build.py", "implementation_build_revalidation.py",
             "implementation_stage_validation.py", "implementation_candidate_recovery.py",
             "implementation_audit.py", "implementation_graph.py", "implementation_scopes.py",
-            "implementation_capabilities.py",
+            "implementation_capabilities.py", "implementation_review_followup.py",
             "implementation_callbacks.py", "implementation_model_bindings.py", "implementation_check_evidence.py", "implementation_test_evidence.py",
             "experiment_implementation.py", "simulation_render_bundle.py",
             "simulation_artifact_io.py",
@@ -67,7 +67,7 @@ def _node_validator_names(node_id: str) -> set[str]:
         "figure": {
             "figure_artifacts.py", "figure_revision_progress.py",
             "figure_routing.py", "figure_semantic_projection.py", "scientific_plotting.py", "scientific_plot_template.py",
-            "scientific_scene_figure.py", "scientific_scene_placement.py", "scientific_scene_labels.py",
+            "scientific_scene_figure.py", "scientific_scene_topology_layout.py", "scientific_scene_placement.py", "scientific_scene_labels.py",
             "deterministic_figure_builder.py", "figure_producer_errors.py",
             "figure_producer_fingerprint.py", "scientific_asset_contract.py",
             "figure_execution_policy.py", "figure_execution_evidence.py",
@@ -136,7 +136,7 @@ def _validator_source_paths(node_id: str) -> list[Path]:
     if node_id == "exp-design":
         sources.extend(workflows / name for name in (
             "implementation_reconciliation.py", "implementation_stage_progress.py", "implementation_declared_handoff.py",
-            "implementation_review_progress.py",
+            "implementation_review_progress.py", "implementation_attempt_harness.py",
             "implementation_model_invocation.py",
             "staged_implementation_coordinator.py", "node_gate_preparation.py",
         ))

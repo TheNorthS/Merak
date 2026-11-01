@@ -323,7 +323,7 @@ class ExperimentImplementationBuildService:
     ) -> str:
         root = Path(project_path).expanduser().resolve()
         from .impl_stage_targets import existing_stage_review_instruction
-        review_instruction = existing_stage_review_instruction(root, stage_id, self.validate_stage(root, stage_id, direction))
+        review_instruction = existing_stage_review_instruction(root, stage_id, self.validate_stage(root, stage_id, direction), findings)
         blueprint = self.ensure_blueprint(root, direction)
         family = self._family(blueprint)
         stages = self.project_stages(root, family)
@@ -362,7 +362,7 @@ Domain evidence contract (adapt implementation to these requirements):
 - Statistics: {', '.join(str(item) for item in domain_contract.get('statistics') or []) or 'declare estimands and uncertainty'}
 - Provenance: {', '.join(str(item) for item in domain_contract.get('provenance') or []) or 'bind outputs to data/config/run identity'}
 
-Current deterministic findings:
+Current validation and independent-review findings:
 {issue_text}
 Current review-or-repair operation: {review_instruction + chr(10) + output_provenance_instruction()}
 

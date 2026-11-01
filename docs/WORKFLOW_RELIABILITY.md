@@ -10,7 +10,7 @@ remain blocking. A running task is not an accepted scientific artifact.
 | Provider → tool execution | Complete response and JSON object before any tool executes; one protocol recovery within the original request budget | `test_tool_response_protocol.py` |
 | Stage → filesystem | Exact declared write targets, checked before handlers and counters; other stages and runtime records remain read-only | `test_agent_write_scope.py` |
 | Integration evidence → method contract | Explicit frozen mechanism IDs; validate references before merge; finalize implemented only after deep integration checks | `test_implementation_owner_reconciliation.py` |
-| Integration inputs → prior stages | Fresh deterministic checks can reuse unchanged owner outputs; input hashes refresh without repeating model generation | `test_implementation_owner_reconciliation.py` |
+| Integration inputs → prior stages | Unchanged valid dependencies may be reused; changed scientific inputs require owner reconciliation before rebinding acceptance | `test_implementation_owner_reconciliation.py` |
 | Blocked implementation → outer repair | Preserve stable findings and scoped targets; do not rewrite the frozen experiment plan or render previews before implementation is valid | `test_workflow_failure_boundaries.py` |
 | Gate preparation → failure handling | Provider/protocol failures preserve transport checkpoints rather than requesting scientific content edits | `test_workflow_failure_boundaries.py` |
 | Preview producer → output reuse | Current manifest, source, data and PDF/SVG/PNG hashes must all match; otherwise render and preserve failure gates | `test_simulation_render_reuse.py` |

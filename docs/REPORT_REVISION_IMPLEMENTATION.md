@@ -45,6 +45,19 @@ unexpected target/source changes stop rather than overwrite user edits.
 If interrupted after a file write but before its durable completion record,
 the outcome is treated as ambiguous and requires reassessment, not blind replay.
 
+Iteration-budget exhaustion after joined tools instead hands saved edits to the
+independent impact reviewer. A persisted older interruption may take this path
+only after its immutable before image, same-run scoped Edit receipts and current
+file bytes agree. External edits or unjoined effects remain blocked. This
+handoff does not declare a finding resolved or authorize another author replay.
+
+Reviewer allegations are not user commands. Exact publication evidence may
+disprove a suggested metadata correction; unchanged source is then acceptable
+only after independent verification. Specialist document repairs use the
+configured task revision limit and preserve earlier attempts. The current
+repetition check compares issue text; semantically equivalent rewording is not
+fully identified, so the hard attempt budget remains necessary.
+
 Report rounds share the existing configured revision limit per consumer;
 renaming a finding cannot create unlimited rounds. Provider retries do not
 increment report rounds. State write failures propagate. Completed/cancelled

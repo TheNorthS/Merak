@@ -165,6 +165,7 @@ def section_primary_panel_parents(root: Path, section_path: Path) -> dict[str, s
     cannot establish the input identity for the section currently under review.
     """
     from .latex_bundle import _reachable_sources
+    from .paper_candidate_io import candidate_path
 
     root = root.resolve()
     sources = _reachable_sources(section_path, root / "paper", root)
@@ -172,5 +173,5 @@ def section_primary_panel_parents(root: Path, section_path: Path) -> dict[str, s
         return {}
     blocks = [block for source in sorted(sources)
               for block in re.findall(r"\\begin\{table\*?\}.*?\\end\{table\*?\}",
-                                      source.read_text(encoding="utf-8-sig"), re.DOTALL)]
+                                      candidate_path(source).read_text(encoding="utf-8-sig"), re.DOTALL)]
     return source_bound_primary_panel_parents(root, blocks)

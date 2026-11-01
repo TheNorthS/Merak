@@ -90,7 +90,9 @@ async def test_old_coverage_report_forces_review_without_author_obligation(tmp_p
     host = SimpleNamespace(_emit=emit, _run_code_review=review_again)
     with pytest.raises(ImplementationReviewIncomplete):
         await ensure_design_review(host, SimpleNamespace(project_path=str(tmp_path)), "Fixture", {}, "draft")
-    assert calls == [True] and path.read_bytes() == before
+    # One bounded read-only continuation is allowed; neither attempt edits the
+    # author artifacts or replaces the previous review with invented success.
+    assert calls == [True, True] and path.read_bytes() == before
 
 
 @pytest.mark.asyncio

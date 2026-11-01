@@ -203,6 +203,7 @@ def write_current_publication_table_bundle(root: Path) -> dict[str, Path]:
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     blocks = []
     for binding in simulation_table_bindings_from_manifest(payload, "objective_mechanism"):
+        columns, header = "lc", r"Condition & Score\\\midrule"
         if binding.stable_role == "component_ablation":
             body = "Declared condition & 0.70\\\\\nWithout Controlled representation & 0.60\\\\\n"
             relative = binding.data_path
@@ -214,9 +215,13 @@ def write_current_publication_table_bundle(root: Path) -> dict[str, Path]:
             profile["axis_field"] = "component_setting"
         else:
             body = "Reference condition & 0.60\\\\\nDeclared condition & 0.70\\\\\n"
+        if binding.stable_role == "robustness_sensitivity":
+            columns, header = "llcc", r"Method & Method & Score & Interval\\\midrule"
+            body = ("Reference condition & Reference condition & 0.60 & [0.58, 0.62] \\\\\n"
+                    "Declared condition & Declared condition & 0.70 & [0.68, 0.72] \\\\\n")
         blocks.append(r"\begin{table}\caption{" + binding.scientific_role.capitalize()
-                      + r" finite comparison}\label{" + binding.label + r"}\begin{tabular}{lc}\toprule"
-                      + r"Condition & Score\\\midrule" + "\n" + body + r"\bottomrule\end{tabular}\end{table}")
+                      + r" finite comparison}\label{" + binding.label + r"}\begin{tabular}{" + columns + r"}\toprule"
+                      + header + "\n" + body + r"\bottomrule\end{tabular}\end{table}")
     table = root / payload["paper_table"]
     table.write_text("\n".join(blocks), encoding="utf-8")
     payload["paper_table_sha256"] = _sha(table)

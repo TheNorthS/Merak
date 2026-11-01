@@ -127,3 +127,22 @@ def test_complete_native_svg_to_product_pdf_passes_actual_placed_font_and_overla
     with fitz.open(pdf) as document:
         text = " ".join(document[0].get_text().split())
     assert all(" ".join(node["label"].split()) in text for node in spec["nodes"])
+
+
+@pytest.mark.parametrize("multiplier", [1.3, 1.5, 1.65])
+def test_mixed_control_scene_qualifier_survives_paper_font_growth(tmp_path, multiplier):
+    from server.services.svg_variant_conversion import convert_svg_variants
+    asset = json.loads((Path(__file__).parent / "fixtures/mixed_control_scene.json").read_text(encoding="utf-8"))
+    spec = compile_scientific_scene_figure(asset).spec
+    before = deepcopy(spec)
+    renderer = _load_figurespec_renderer()
+    projected = project_figurespec_typography(spec, renderer, multiplier)
+    source = tmp_path / "paper.svg"
+    source.write_text(render_figurespec_typography(spec, renderer, multiplier), encoding="utf-8")
+    pdf, png = source.with_suffix(".pdf"), source.with_suffix(".png")
+    ok, error = convert_svg_variants(source, pdf, png)
+    assert ok, error
+    geometry = pdf_print_geometry(pdf, {"width_bp": 372.24})
+    assert geometry["minimum_placed_font_bp"] >= 8.5
+    assert geometry["text_geometry_findings"] == []
+    assert spec == before and _meaning(projected) == _meaning(spec)

@@ -146,7 +146,7 @@ async def test_model_code_review_failure_prevents_evidence_generation(tmp_path):
          "message": "missing axis resolution", "target_files": ["experiments/src/train.py"]}]}
     host = SimpleNamespace(_emit=AsyncMock(), _run_code_review=AsyncMock(return_value="review"),
                            _parse_training_check_result=lambda *a, **k: assessment, _persist_training_check=lambda *a: None)
-    run = SimpleNamespace(project_path=str(tmp_path), options={})
+    run = SimpleNamespace(id="review-blocks-evidence", project_path=str(tmp_path), options={})
     with pytest.raises(ImplementationReviewBlocked):
         await ensure_design_review(host, run, "offline", {}, "draft")
     assert not (tmp_path / MANIFEST).exists()

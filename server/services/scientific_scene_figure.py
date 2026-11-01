@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from itertools import chain
 from typing import Any
 
 from .figure_semantic_projection import project_figure_semantics
@@ -270,16 +271,21 @@ def compile_scientific_scene_figure(asset: dict[str, Any]) -> ArchitectureCompil
         ("relation-perimeter", lambda: perimeter_placement(objects)),
         ("relation-perimeter-rotated", lambda: perimeter_placement(objects, rotation=0.0)),
     )
+    from .scientific_scene_topology_layout import topology_placements
+    topology = (("topology-perimeter", lambda placement=placement: placement)
+                for placement in topology_placements(objects, relations, public_names))
     failures = []
-    for name, arrange in options:
+    for name, arrange in chain(options, topology):
         try:
             spec = _candidate(asset, objects, relations, controls, public_names, arrange())
         except ValueError as error:
-            failures.append(f"{name}: {error}")
+            if len(failures) < 12:
+                failures.append(f"{name}: {error}")
             continue
         issues = figurespec_layout_issues_payload(spec)
         if issues:
-            failures.append(f"{name}: {'; '.join(issues[:3])}")
+            if len(failures) < 12:
+                failures.append(f"{name}: {'; '.join(issues[:3])}")
             continue
         mappings = [{
             "element_id": str(item["id"]),

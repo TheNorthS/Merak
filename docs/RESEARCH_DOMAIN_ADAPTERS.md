@@ -38,9 +38,11 @@ the model; deterministic gates still require the project artifacts themselves.
   silently skipped. They use the same resumable ownership and fingerprint
   machinery, but their validators look for protocol/endpoint or proof/bound/
   counterexample semantics instead of optimizer steps.
-- Simulation mode does not change the manuscript vocabulary. Evidence-mode
-  eligibility remains in sidecar manifests, while the paper receives the full
-  domain-appropriate structure and analysis prose.
+- Evidence mode preserves a domain-appropriate manuscript structure, but changes
+  what the text may claim. Synthetic-preview values require explicit construction
+  and scope explanations plus the final disclosure; they cannot be described as
+  actual model training, clinical, field or production measurements. Sidecar
+  eligibility records supplement these reader-visible limits.
 - EEG-specific assets (channels, montage, topographic views) are an optional
   visualization adapter. They do not define the implementation or paper
   contracts for other fields.
@@ -48,3 +50,7 @@ the model; deterministic gates still require the project artifacts themselves.
 The machine-readable source of truth is the `domain_evidence_contract` field in
 `paper/PUBLICATION_STYLE.json` and
 `experiments/IMPLEMENTATION_BLUEPRINT.json`.
+
+These are available profile routes, not a claim that all listed families have
+passed repeated real-model end-to-end acceptance. See the current
+[release verification scope](RELEASE_0.1.1.md).

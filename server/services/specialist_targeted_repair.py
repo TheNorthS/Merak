@@ -56,7 +56,7 @@ async def repair_specialist_document(ctx, record: dict, entry: dict, paths: list
             return saved['candidate']
         raise ValueError('Specialist repair outcome is unresolved or inputs changed; do not replay it')
     prior_attempts = [r for r in record.get('specialist_content_history', []) if r['specialist_id'] == entry['id']]
-    if len(prior_attempts) >= 2:
+    if len(prior_attempts) >= specialist_attempt_limit(ctx):
         raise ValueError('Specialist content repair budget exhausted')
     before = service._sha256(artifact)
     repairs[entry['id']] = {'status': 'editing', 'input_hash': input_hash, 'before_sha256': before,
@@ -100,12 +100,46 @@ async def repair_specialist_document(ctx, record: dict, entry: dict, paths: list
 
 
 def next_specialist_attempt(ctx, record: dict, entry: dict, response: dict) -> None:
-    """A rejected candidate may receive at most one further content repair, with evidence retained."""
+    """New findings may use remaining budget; two unchanged verified findings stop."""
     from ..workflows.report_revision_store import save_report
     history = record.setdefault('specialist_content_history', [])
-    if sum(r['specialist_id'] == entry['id'] for r in history) >= 1:
-        raise ValueError('Specialist remains invalid after two verified content attempts: ' + json.dumps(response))
+    previous = [row for row in history if row['specialist_id'] == entry['id']]
     repair = record['specialist_repairs'][entry['id']]
+    repair['last_review'] = copy.deepcopy(response)
+    save_report(ctx.run_state, record)
+    current = set(response.get('issues') or [])
+    repeated = bool(previous and current.intersection(previous[-1]['review'].get('issues') or []))
+    if repeated:
+        raise ValueError('Specialist remains invalid after two verified content attempts: ' + json.dumps(response))
+    if len(previous) + 1 >= specialist_attempt_limit(ctx):
+        raise ValueError('Specialist content repair budget exhausted: ' + json.dumps(response))
     history.append({'specialist_id': entry['id'], 'repair': copy.deepcopy(repair), 'review': response})
     del record['specialist_repairs'][entry['id']]
     save_report(ctx.run_state, record)
+
+
+def specialist_attempt_limit(ctx) -> int:
+    return max(1, int(getattr(ctx, 'max_revision_rounds', 0) or ctx.opts.get('max_revision_rounds') or 2))
+
+
+def reopen_specialist_review(root: Path, saved: dict, record: dict) -> bool:
+    """Explicit resume rechecks a persisted candidate without resetting consumed attempts."""
+    if (record.get('status') != 'needs_attention' or not str(record.get('error', '')).startswith(
+            'ValueError: Specialist remains invalid after two verified content attempts:')):
+        return False
+    maximum = int(saved.get('config', {}).get('options', {}).get('max_revision_rounds') or 2)
+    from ..workflows.report_revision_store import require_expected
+    for identity, repair in record.get('specialist_repairs', {}).items():
+        consumed = sum(row['specialist_id'] == identity for row in record.get('specialist_content_history', [])) + 1
+        if repair.get('status') != 'authored' or consumed >= maximum:
+            continue
+        candidate = repair.get('candidate') or {}
+        artifact = (root / candidate.get('artifact', '')).resolve()
+        if not artifact.is_relative_to(root / 'experiments/specialists') or not artifact.is_file():
+            raise ValueError('Specialist recovery requires its canonical artifact')
+        if hashlib.sha256(artifact.read_bytes()).hexdigest() != repair.get('after_sha256'):
+            raise ValueError('Specialist document changed externally after review')
+        require_expected(root, record)
+        record['status'] = 'refreshing'
+        return True
+    return False

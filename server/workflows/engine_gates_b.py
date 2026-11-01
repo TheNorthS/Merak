@@ -2,6 +2,7 @@
 
 # ruff: noqa: F403, F405
 from .engine_context import *
+from ..services.implementation_review_followup import review_followup_context
 
 class GatesBMixin:
     def _audit_acceptance_gate(self, project_path: str, assurance: str, result: str, *, evidence_mode: str='executed', run_id: str='', delivery_goal: str='submission_candidate') -> dict:
@@ -99,6 +100,7 @@ class GatesBMixin:
             from ..services.training_review_policy import review_scope_instruction
             from ..services.implementation_review_completion import review_completion_instruction
             arguments += '\n' + review_scope_instruction() + '\n' + review_completion_instruction()
+            arguments += review_followup_context.get()
             result = await invoke_skill('training-check', arguments, project_path=run.project_path, parent_context=f'skill-chain:workflow>{review_node_id}-preflight', allowed_tools_override=['Read', 'Glob', 'Grep'], invocation_contract='Read-only workflow preflight. Do not run experiments, invoke nested skills, or modify project artifacts.', max_iterations=12, resume_input_fingerprint=review_source_hash(Path(run.project_path)))
         except Exception as exc:
             traces = self._skill_invocation_traces(run.project_path, 'training-check', started_at)

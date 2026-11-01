@@ -4,21 +4,25 @@
 
 将 Merak 源码目录的内容作为仓库根目录：根目录直接包含 `package.json`、`pyproject.toml`、`README.md` 和 `.github/`。不要上传父目录的参考项目或整个科研工作区。
 
-`npm run export:source` 生成 `release/Merak-Source-<版本>.zip`，包含当前源码、技能、必要文档、回归测试与 CI 配置，排除个人配置、数据库、生成输出、依赖和 Git 历史。解压后以其中目录作为仓库内容。
+直接在现有源码目录提交即可，无需复制到另一个目录。`npm run export:source` 是可选的源码归档方式，生成 `release/Merak-Source-<版本>.zip`，排除个人配置、数据库、生成输出、依赖和 Git 历史；不影响原目录上传。
 
-首次上传时，直接在现有源码根目录执行以下命令；使用源码 ZIP 时则进入解压后的
-`Merak/` 目录。已有 Git 仓库无需再次初始化，将远程地址替换为自己的空 GitHub 仓库地址：
+已有 Git 仓库和 `origin` 时，在包含 `package.json` 的原目录执行：
 
 ```powershell
-git init -b main
+git status --short
+git remote -v
 git add .
 git diff --cached --stat
-git commit -m "Initial Merak release"
-git remote add origin https://github.com/YOUR_ACCOUNT/Merak.git
-git push -u origin main
+git diff --cached --name-only
+git commit -m "release: prepare 0.1.1 public test release"
+git push -u origin HEAD
 ```
 
-提交前检查文件列表。`.env`、数据库、用户设置、`output/`、依赖和安装包由 `.gitignore` 排除；`.env.example`、截图、锁文件和 `server/tests/` 需要保留。`npm run export:source` 依赖 Git 文件清单，须先在源码目录执行 `git init`。
+`HEAD` 表示当前分支；推送前用 `git branch --show-current` 核对分支。若远端拒绝非快进推送，先核对并整合远端提交，不用强制推送覆盖历史。只有新建目录且尚无 Git 仓库时才执行 `git init -b main`；只有没有 `origin` 时才用 `git remote add origin <你的仓库地址>`。
+
+提交前检查暂存文件列表。`.env`、数据库、用户设置、`output/`、依赖和安装包由 `.gitignore` 排除；`.env.example`、截图、锁文件和新增回归测试需要保留。忽略规则不影响已经跟踪的文件，不应使用 `git add -f` 上传本地配置或构建目录。
+
+`release/` 中的安装器和校验文件作为 Release 附件单独上传，不随源码 push。若使用本地构建包，先提交对应源码；`build-info.json` 中 `working_tree_modified=true` 表示构建时包含未提交修复，不能将旧 HEAD 当作该包完整的来源。源码 ZIP 依赖 Git 文件清单，首次导出前须初始化仓库。
 
 ## 本地构建
 
@@ -90,6 +94,10 @@ GitHub 自动提供的 `GITHUB_TOKEN`。不需要模型密钥、GPU 凭据或个
 
 首次分发建议在干净 Windows 机器安装，检查启动、模型连接、打开项目、PDF 预览及外部工具。本地构建成功不代表 GitHub 已执行，手动触发后的 Actions 日志才是远端证据。
 
+同一 `appId` 的 NSIS 安装器会识别已有注册安装，即使选择另一安装目录，也可能先卸载旧程序；
+更换目录不能当作并行隔离安装。安装测试应在独立 Windows 用户或虚拟机进行，或按升级流程
+保留原安装包并确认目标目录。应用配置和科研项目须独立保留，测试后核对快捷方式与实际安装位置。
+
 更新依赖后重新生成锁文件：
 
 ```powershell
@@ -102,7 +110,7 @@ uv pip compile pyproject.toml --extra dev --extra production --extra build --uni
 
 显示名称与发布文件前缀使用 `Merak`。内部命名统一为 `merak-ide`、`merak-ide-server`、`com.merak.ide`、`MERAK_*` 环境变量和 `.merak/` 项目记录。API 使用 `/api/merak`，桌面桥接使用 `window.merakIDE`，随包后端为 `merak-backend.exe`。
 
-这是安装与存储身份变更。旧版安装、配置、数据库和历史项目记录保持原样；新版不静默迁移或改写它们。退出旧版本后安装并重新配置模型与外部服务。读取旧运行记录需保留原版本，不要批量替换历史文件中的路径或哈希。
+早期 ARIS 命名版本与 Merak 使用不同安装身份，不能假定配置会自动迁移。同为 Merak 应用身份的版本会按 NSIS 升级路径替换旧程序；安装器配置为保留用户数据，但升级前仍应备份配置和科研项目。不要把指定新安装目录当作并行保留旧版的方法。历史运行格式兼容性按版本说明判断，不要批量替换记录中的路径或哈希。
 
 图标以 M 形轮廓与星芒表达北斗指引，几何定义在 `scripts/generate-icon.py`。运行 `python scripts/generate-icon.py` 生成深色 `resources/icon.svg`、白色 `resources/icon-light.svg` 和 Windows 多尺寸 ICO。界面图标随主题切换。
 

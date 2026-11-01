@@ -20,8 +20,9 @@
 
 Merak 将研究计划、智能体执行、实验环境和科研产物放进同一个桌面工作空间。你可以从一个研究问题开始，也可以提供已有论文和代码，让智能体继续梳理文献、设计实验、执行代码、分析结果、撰写论文与生成汇报材料。
 
-当前初始版本 **0.1.1 为公开测试版**。完整任务已有完成记录，但连续跨项目稳定性和
-实际升级安装尚未完成验收，详见 [版本说明](docs/RELEASE_0.1.1.md)。
+当前初始版本 **0.1.1 为公开测试版**。已有真实模型的 13 节点恢复交付记录，
+尚未证明多个全新跨领域任务能连续无干预完成，也不承诺任意旧版本无缝升级。
+验证范围和已知限制见 [版本说明](docs/RELEASE_0.1.1.md)。
 
 系统以**项目文件、产物依赖与运行记录**连接各个环节。Zotero 和 Obsidian 提供研究上下文，本地或远程算力承接实验，Overleaf 参与论文协作。你可以查看节点进度、工具调用和日志，在关键环节介入，并在中断后手动恢复。
 
@@ -315,8 +316,7 @@ Merak 在模型请求、工具执行和产物保存之间设置可检查的约�
 建议环境：**Node.js 22、Python 3.11、Git**。
 
 ```powershell
-# 将 YOUR_ACCOUNT/Merak 替换为当前 GitHub 仓库地址。
-git clone https://github.com/YOUR_ACCOUNT/Merak.git
+git clone https://github.com/TheNorthS/Merak.git
 cd Merak
 
 npm ci
@@ -384,7 +384,7 @@ npm run dev:web
 
 源码与运行时统一使用 Merak 命名：`merak-ide` 包名、`MERAK_*` 环境变量、`/api/merak` 接口和 `.merak/` 项目记录目录，版权为 **NorthS Team**。
 
-这次命名升级使用独立的安装身份和用户数据目录。旧版设置、数据库及项目记录不会被覆盖或自动转换；新安装需要重新配置模型与外部服务。历史运行请保留原版本读取，不要直接改写历史产物的路径或哈希。
+早期 ARIS 命名版本与 Merak 的安装身份不同，不能假定设置会自动迁移。同一 Merak 身份的安装器会按升级路径替换旧程序，并配置为保留用户数据。升级前备份配置和科研项目；历史运行格式兼容性以版本说明为准，不要直接改写历史产物的路径或哈希。
 
 ---
 
@@ -491,6 +491,8 @@ npm run export:source     # 从 Git 工作区导出干净源码 ZIP
 | [使用指南](docs/TUTORIAL.md) | 安装、配置、工作流、恢复与对话编辑 |
 | [开发启动](docs/DEVELOPMENT_STARTUP.md) | 前端与 Electron 的启动机制 |
 | [工作流可靠性](docs/WORKFLOW_RELIABILITY.md) | 工具协议、产物依赖与失败处理 |
+| [Agent Harness](docs/AGENT_HARNESS.md) | 执行约束、问题复核与当前覆盖范围 |
+| [报告修订](docs/REPORT_REVISION_IMPLEMENTATION.md) | 定向编辑、独立影响审查与恢复边界 |
 | [科研质量工作流](docs/RESEARCH_QUALITY_WORKFLOW.md) | 科学证据、审查与质量检查 |
 | [领域适配](docs/RESEARCH_DOMAIN_ADAPTERS.md) | 研究领域与任务模式 |
 | [远程实验](docs/REMOTE_EXPERIMENT_RUNTIME.md) | SSH、Vast.ai、Modal 的执行与恢复 |

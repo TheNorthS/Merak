@@ -10,6 +10,10 @@
 | [仓库维护](REPOSITORY_MAINTENANCE.md) | 源码、测试和个人数据保留规则 |
 | [开发启动](DEVELOPMENT_STARTUP.md) | 前端与 Electron 启动机制 |
 | [工作流可靠性](WORKFLOW_RELIABILITY.md) | 工具调用、检查点、取消与恢复 |
+| [Agent Harness](AGENT_HARNESS.md) | 执行回执、审查义务与验证范围 |
+| [报告修订](REPORT_REVISION_IMPLEMENTATION.md) | 多负责人定向修订、影响审查与恢复 |
+| [已验收阶段保留](ACCEPTED_STAGE_PRESERVATION.md) | 复用条件、依赖变化与历史记录 |
+| [论文一致性修订](CONSISTENCY_REPAIR_BOUNDARIES.md) | 章节与生成器的修改边界 |
 | [科研质量工作流](RESEARCH_QUALITY_WORKFLOW.md) | 科学证据与审查机制 |
 | [领域适配](RESEARCH_DOMAIN_ADAPTERS.md) | 不同科研领域的适配边界 |
 | [远程实验运行](REMOTE_EXPERIMENT_RUNTIME.md) | 远程执行与恢复 |

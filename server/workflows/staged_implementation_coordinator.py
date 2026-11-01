@@ -20,7 +20,6 @@ from .implementation_reconciliation import (
     capture_protected_inputs,
     expand_integration_targets,
     prepare_stage,
-    reconcile_attempt,
 )
 from .models import WorkflowNode, WorkflowRun
 from ..agent.iteration_budget import AgentIterationLimit
@@ -160,10 +159,8 @@ class StagedImplementationCoordinator:
                 },
             )
             invocation = StageModelInvocation(context, state, attempt)
-            output = await self._invoke_attempt(state, invocation)
-            from ..services.implementation_handoff import MAX_STAGE_HANDOFF_CHARS
-            state.summaries.append(output[:MAX_STAGE_HANDOFF_CHARS])
-            state.report = reconcile_attempt(context, state, protection)
+            from .implementation_attempt_harness import run_implementation_attempt
+            output = await run_implementation_attempt(self, context, state, invocation, protection)
             await self._expand_targets(state, attempt)
             self._record_result(state, attempt, invocation, output)
             if state.report.get("passed"):
